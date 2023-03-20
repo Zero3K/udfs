@@ -830,6 +830,7 @@ UDFBuildShortAllocDescs(
  IN OUT PUDF_FILE_INFO FileInfo
     )
 {
+    UDFPrint(("UDFBuildShortAllocDescs\n"));
     uint32 i, j;
     uint32 len=0;
     PEXTENT_MAP Extent = FileInfo->Dloc->DataLoc.Mapping;
@@ -966,7 +967,7 @@ sh_alloc_err:
             if(Tag) {
                 // Set up Tag for AllocDesc
                 Tag->tagIdent = TID_ALLOC_EXTENT_DESC;
-                UDFSetUpTag(Vcb, Tag, (uint16)TagLen, TagLoc);
+                UDFSetUpTag(Vcb, Tag, (uint16)TagLen, TagLoc, 0);
                 prevTagLoc = TagLoc;
             }
             if(!j) {
@@ -1017,6 +1018,7 @@ UDFBuildLongAllocDescs(
  IN OUT PUDF_FILE_INFO FileInfo
     )
 {
+    UDFPrint(("UDFBuildLongAllocDescs\n"));
     uint32 i, j;
     uint32 len=0;
     PEXTENT_MAP Extent = FileInfo->Dloc->DataLoc.Mapping;
@@ -1142,7 +1144,7 @@ lad_alloc_err:
             if(Tag) {
                 // Set up Tag for AllocDesc
                 Tag->tagIdent = TID_ALLOC_EXTENT_DESC;
-                UDFSetUpTag(Vcb, Tag, (uint16)TagLen, TagLoc);
+                UDFSetUpTag(Vcb, Tag, (uint16)TagLen, TagLoc, 0);
                 prevTagLoc = TagLoc;
             }
             if(!j) {
@@ -1336,7 +1338,7 @@ UDFDiscardFESpace(
     PEXTENT_MAP Mapping2;
     uint32 i;
 
-    UDFPrint(("  DiscardFESpace\n"));
+    UDFPrint(("  UDFDiscardFESpace\n"));
     Mapping2 = Mapping;
     for(i=0;i<lim;i++, Mapping++) {
         // we should not discard allocated FEs
@@ -1820,6 +1822,7 @@ UDFMarkAllocatedAsRecorded(
     IN PEXTENT_INFO ExtInfo   // Extent array
     )
 {
+    UDFPrint(("UDFMarkAllocatedAsRecorded Offset %x Length %x\n", Offset, Length));
     uint32 i, len, lba, sLen;
     PEXTENT_MAP Extent = ExtInfo->Mapping;   // Extent array
     PEXTENT_MAP NewExtent;
@@ -1954,6 +1957,7 @@ UDFMarkNotAllocatedAsAllocated(
     IN PEXTENT_INFO ExtInfo   // Extent array
     )
 {
+    UDFPrint(("UDFMarkNotAllocatedAsAllocated Offset %x Length %x\n", Offset, Length));
     uint32 i, len, /*lba,*/ d, l, BOffs, j;
     PEXTENT_MAP Extent = ExtInfo->Mapping;   // Extent array
     PEXTENT_MAP NewExtent;
@@ -1974,7 +1978,7 @@ UDFMarkNotAllocatedAsAllocated(
     if(i == (ULONG)-1) return STATUS_INVALID_PARAMETER;
     if((Extent[i].extLength >> 30) != EXTENT_NOT_RECORDED_NOT_ALLOCATED) return STATUS_SUCCESS;
 
-    uint32 PartNum = UDFGetPartNumByPhysLba(Vcb, Extent[0].extLocation);
+    uint32 PartNum = UDFGetRefPartNumByPhysLba(Vcb, Extent[0].extLocation);
     BOffs = (uint32)(Offset >> BSh);
     // length of existing Not-Alloc-Not-Rec frag
     sLen = (( (((uint32)Offset) & (LBS-1)) + Length+LBS-1) & ~(LBS-1)) >> BSh;
@@ -2101,6 +2105,7 @@ UDFMarkAllocatedAsNotXXX(
     IN BOOLEAN Deallocate
     )
 {
+    UDFPrint(("UDFMarkAllocatedAsNotXXX Offset %x Length %x Deallocate %x\n", Offset, Length, Deallocate));
     uint32 i, len, /*lba, d,*/ l, BOffs, j;
     PEXTENT_MAP Extent = ExtInfo->Mapping;   // Extent array
     PEXTENT_MAP NewExtent;
@@ -2143,7 +2148,7 @@ UDFMarkAllocatedAsNotXXX(
     flags = Extent[i].extLength >> 30;
     if(flags == target_flags) return STATUS_SUCCESS;
 
-//    uint32 PartNum = UDFGetPartNumByPhysLba(Vcb, Extent[0].extLocation);
+    //    uint32 PartNum = UDFGetRefPartNumByPhysLba(Vcb, Extent[0].extLocation);
     BOffs = (uint32)(Offset >> BSh);
     // length of existing Alloc-(Not-)Rec frag (in sectors)
     sLen = (( (((uint32)Offset) & (LBS-1)) + Length+LBS-1) & ~(LBS-1)) >> BSh;
@@ -2256,7 +2261,7 @@ UDFResizeExtent(
     uint32 MaxGrow = (UDF_MAX_EXTENT_LENGTH & ~(LBS-1));
     BOOLEAN Sequential = FALSE;
 
-    //ASSERT(PartNum < 3);
+    ASSERT(PartNum < 3);
 
     ExtPrint(("Resize ExtInfo %x, %I64x -> %I64x\n", ExtInfo, ExtInfo->Length, Length));
 
@@ -3195,6 +3200,7 @@ UDFWriteExtent(
     OUT PSIZE_T WrittenBytes
     )
 {
+    UDFPrint(("UDFWriteExtent\n"));
     if(!ExtInfo || !ExtInfo->Mapping)
         return STATUS_INVALID_PARAMETER;
 
