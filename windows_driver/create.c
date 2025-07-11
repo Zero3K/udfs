@@ -40,7 +40,7 @@ UdfsCreate(
         /* Set up file object */
         FileObject->FsContext = Fcb;
         FileObject->FsContext2 = Ccb;
-        FileObject->SectionObjectPointer = &Fcb->Header.SectionObjectPointer;
+        FileObject->SectionObjectPointer = &Fcb->SectionObjectPointers;
         
         /* Set success information */
         if (Fcb->Flags & UDFS_FCB_DIRECTORY) {
@@ -191,7 +191,7 @@ UdfsCreateFcb(
     NewFcb->ReferenceCount = 1;
     
     /* Set up FCB header */
-    FsRtlSetupAdvancedHeader(&NewFcb->Header, &Vcb->FcbResource);
+    FsRtlSetupAdvancedHeader(&NewFcb->Header, &Vcb->AdvancedFcbHeaderMutex);
     
     /* Add to VCB FCB list */
     ExAcquireResourceExclusiveLite(&Vcb->FcbResource, TRUE);

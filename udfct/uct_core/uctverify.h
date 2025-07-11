@@ -385,7 +385,7 @@ extern bool swapAndVerifyVatFile( PartitionMapInfo *vPmi,
 #define NONALLOCNAME150_LOOKALIKE "Non-Allo"                    /* UDF 1.50 */
 
 #define NONALLOCNAME200            UDF_SS_NONALLOC              /* UDF 2.00+ */
-                            /**   "*UDF Non-Allocatable Space"  /* UDF 2.00+ */
+                            /**   "*UDF Non-Allocatable Space"  UDF 2.00+ */
 #define NONALLOCNAME200_LOOKALIKE "*UDF Non-Allo"               /* UDF 2.00+ */
 
 #define NONALLOC_UDFREF_TXT \

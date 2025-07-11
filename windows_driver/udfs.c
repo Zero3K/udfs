@@ -228,6 +228,7 @@ UdfsCreateVcb(
     /* Initialize resources */
     ExInitializeResourceLite(&NewVcb->VcbResource);
     ExInitializeResourceLite(&NewVcb->FcbResource);
+    ExInitializeFastMutex(&NewVcb->AdvancedFcbHeaderMutex);
     
     /* Initialize FCB list */
     InitializeListHead(&NewVcb->FcbList);

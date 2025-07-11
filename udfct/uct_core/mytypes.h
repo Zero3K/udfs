@@ -16,7 +16,9 @@
 #define __UCT_MYTYPES_H__
 
 #ifdef        __GNUC__
+#ifndef __int64
 #define __int64 long long int
+#endif
 #endif
 
 #define Uint8   unsigned char

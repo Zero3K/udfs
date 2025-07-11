@@ -21,16 +21,31 @@
 #ifdef KERNEL_MODE
 
 /* Prevent standard library includes that are not available in kernel mode */
+/* Only define if not already defined by system headers */
+#ifndef _STDIO_H
 #define _STDIO_H 1
+#endif
+#ifndef _STDLIB_H
 #define _STDLIB_H 1  
+#endif
+#ifndef _STRING_H
 #define _STRING_H 1
+#endif
+#ifndef _TIME_H
 #define _TIME_H 1
-#define _STDDEF_H 1
+#endif
+#ifndef __STDIO_H__
 #define __STDIO_H__ 1
+#endif
+#ifndef __STDLIB_H__
 #define __STDLIB_H__ 1
+#endif
+#ifndef __STRING_H__
 #define __STRING_H__ 1
+#endif
+#ifndef __TIME_H__
 #define __TIME_H__ 1  
-#define __STDDEF_H__ 1
+#endif
 
 /* Windows kernel mode UDFCT adaptation */
 #define printf DbgPrint
@@ -75,9 +90,13 @@ struct tm {
 #define mktime(tm) 0
 #define localtime(t) NULL
 
-/* Other standard library functions */
+/* Other standard library functions - only define if not already defined */
+#ifndef abs
 #define abs(x) ((x) < 0 ? -(x) : (x))
+#endif
+#ifndef labs  
 #define labs(x) ((x) < 0 ? -(x) : (x))
+#endif
 #define exit(code) /* exit not supported in kernel mode */
 #define abort() /* abort not supported in kernel mode */
 
@@ -88,7 +107,6 @@ struct tm {
 
 /* Forward declare types before including UDFCT headers */
 typedef struct Device Device;
-typedef struct UdfMountContext UdfMountContext;
 typedef struct Node Node;
 
 /* Include core UDFCT headers with adaptations */
@@ -164,6 +182,7 @@ typedef struct _UDFS_VCB {
     /* Synchronization */
     ERESOURCE VcbResource;
     ERESOURCE FcbResource;
+    FAST_MUTEX AdvancedFcbHeaderMutex;
     
     /* FCB list */
     LIST_ENTRY FcbList;
@@ -175,6 +194,9 @@ typedef struct _UDFS_VCB {
 typedef struct _UDFS_FCB {
     /* Standard FCB header */
     FSRTL_ADVANCED_FCB_HEADER Header;
+    
+    /* Section object pointers for memory manager */
+    SECTION_OBJECT_POINTERS SectionObjectPointers;
     
     /* Links */
     LIST_ENTRY VcbLinks;
