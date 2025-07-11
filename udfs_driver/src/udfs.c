@@ -254,7 +254,103 @@ static uint64_t timestamp_to_unix(const Timestamp *ts) {
     return (uint64_t)mktime(&tm);
 }
 
-/* Convert UDFCT file type to UDFS file type */
+/* Convert UDFCT extended attribute type to UDFS type */
+static udfs_ea_type_t convert_ea_type(uint32_t udf_ea_type) {
+    switch (udf_ea_type) {
+        case 1: return UDFS_EA_CHARSET_INFO;
+        case 5: return UDFS_EA_FILE_TIMES;
+        case 6: return UDFS_EA_INFO_TIMES;
+        case 12: return UDFS_EA_DEVICE_SPEC;
+        case 2048: return UDFS_EA_IMPL_USE;
+        case 65536: return UDFS_EA_APP_USE;
+        default: return UDFS_EA_CHARSET_INFO; /* fallback */
+    }
+}
+
+/* Get human-readable name for extended attribute type */
+static const char* get_ea_name(udfs_ea_type_t ea_type) {
+    switch (ea_type) {
+        case UDFS_EA_CHARSET_INFO: return "Character Set Information";
+        case UDFS_EA_FILE_TIMES: return "File Times";
+        case UDFS_EA_INFO_TIMES: return "Information Times";
+        case UDFS_EA_DEVICE_SPEC: return "Device Specification";
+        case UDFS_EA_IMPL_USE: return "Implementation Use";
+        case UDFS_EA_APP_USE: return "Application Use";
+        default: return "Unknown";
+    }
+}
+
+/* Parse extended attributes from file entry
+ * Returns pointer to EA space and fills in length
+ */
+static uint8_t* get_extended_attributes(Node *node, uint32_t *ea_length) {
+    uint32_t length;
+    uint8_t *ea_start;
+    
+    if (!node || !node->fe || !ea_length) {
+        return NULL;
+    }
+    
+    /* Get EA length and start from file entry */
+    length = *(pFE_lengthOfExtendedAttributes(node->fe));
+    *ea_length = length;
+    
+    if (length == 0) {
+        return NULL; /* No extended attributes */
+    }
+    
+    /* Get start of EA space */
+    ea_start = (uint8_t*)pFE_startOfExtendedAttributes(node->fe);
+    
+    debug_print("Found %u bytes of extended attributes", length);
+    return ea_start;
+}
+
+/* Parse next extended attribute from EA space
+ * Returns pointer to next EA or NULL if done
+ * Fills in ea_info with information about current EA
+ */
+static uint8_t* parse_next_ea(uint8_t *current_ea, uint8_t *ea_end, udfs_ea_info_t *ea_info) {
+    EAGenericHead *ea_head;
+    uint32_t ea_length;
+    
+    if (!current_ea || !ea_end || !ea_info || current_ea >= ea_end) {
+        return NULL;
+    }
+    
+    /* Check if we have enough space for EA header */
+    if (current_ea + sizeof(EAGenericHead) > ea_end) {
+        debug_print("Not enough space for EA header");
+        return NULL;
+    }
+    
+    ea_head = (EAGenericHead*)current_ea;
+    ea_length = ea_head->attributeLength;
+    
+    /* Validate EA length */
+    if (ea_length < sizeof(EAGenericHead) || current_ea + ea_length > ea_end) {
+        debug_print("Invalid EA length: %u", ea_length);
+        return NULL;
+    }
+    
+    /* Fill in EA info */
+    ea_info->type = convert_ea_type(ea_head->attributeType);
+    ea_info->length = ea_length;
+    strncpy(ea_info->name, get_ea_name(ea_info->type), sizeof(ea_info->name) - 1);
+    ea_info->name[sizeof(ea_info->name) - 1] = '\0';
+    ea_info->available = true;
+    
+    debug_print("Found EA: type=%u, length=%u, name=%s", 
+                ea_head->attributeType, ea_length, ea_info->name);
+    
+    /* Return pointer to next EA (aligned to 4-byte boundary) */
+    uint8_t *next_ea = current_ea + ea_length;
+    
+    /* Align to 4-byte boundary as required by UDF */
+    next_ea = (uint8_t*)(((uintptr_t)next_ea + 3) & ~3);
+    
+    return (next_ea < ea_end) ? next_ea : NULL;
+}
 static udfs_file_type_t convert_file_type(uint8_t udf_type) {
     switch (udf_type) {
         case 4: return UDFS_TYPE_DIRECTORY;  /* UDF directory */
@@ -955,4 +1051,169 @@ bool udfs_exists(udfs_volume_t *volume, const char *path) {
     
     node = find_node_by_path(volume, path);
     return (node != NULL);
+}
+
+/*
+ * Extended Attributes Operations (Phase 3)
+ */
+
+udfs_result_t udfs_list_extended_attributes(udfs_file_t *file, udfs_ea_info_t *ea_list, 
+                                           size_t max_count, size_t *actual_count) {
+    uint8_t *ea_space, *current_ea, *ea_end;
+    uint32_t ea_length;
+    size_t count = 0;
+    udfs_ea_info_t ea_info;
+    
+    if (!file || !ea_list || !actual_count || max_count == 0) {
+        return UDFS_ERROR_INVALID_PARAM;
+    }
+    
+    if (!file->volume || !file->volume->is_mounted || !file->node) {
+        return UDFS_ERROR_NOT_MOUNTED;
+    }
+    
+    *actual_count = 0;
+    
+    /* Get extended attributes space */
+    ea_space = get_extended_attributes(file->node, &ea_length);
+    if (!ea_space || ea_length == 0) {
+        debug_print("No extended attributes found");
+        return UDFS_OK; /* No extended attributes is not an error */
+    }
+    
+    current_ea = ea_space;
+    ea_end = ea_space + ea_length;
+    
+    /* Parse all extended attributes */
+    while (current_ea && count < max_count) {
+        current_ea = parse_next_ea(current_ea, ea_end, &ea_info);
+        if (!current_ea) {
+            break; /* No more EAs or parse error */
+        }
+        
+        /* Copy EA info to output array */
+        ea_list[count] = ea_info;
+        count++;
+    }
+    
+    *actual_count = count;
+    debug_print("Found %zu extended attributes", count);
+    
+    return UDFS_OK;
+}
+
+udfs_result_t udfs_read_extended_attribute(udfs_file_t *file, udfs_ea_type_t ea_type,
+                                          void *buffer, size_t buffer_size, size_t *data_size) {
+    uint8_t *ea_space, *current_ea, *ea_end;
+    uint32_t ea_length;
+    udfs_ea_info_t ea_info;
+    EAGenericHead *ea_head;
+    
+    if (!file || !buffer || !data_size || buffer_size == 0) {
+        return UDFS_ERROR_INVALID_PARAM;
+    }
+    
+    if (!file->volume || !file->volume->is_mounted || !file->node) {
+        return UDFS_ERROR_NOT_MOUNTED;
+    }
+    
+    *data_size = 0;
+    
+    /* Get extended attributes space */
+    ea_space = get_extended_attributes(file->node, &ea_length);
+    if (!ea_space || ea_length == 0) {
+        debug_print("No extended attributes found");
+        return UDFS_ERROR_NOT_FOUND;
+    }
+    
+    current_ea = ea_space;
+    ea_end = ea_space + ea_length;
+    
+    /* Search for the requested EA type */
+    while (current_ea) {
+        uint8_t *next_ea = parse_next_ea(current_ea, ea_end, &ea_info);
+        if (!next_ea) {
+            break; /* No more EAs or parse error */
+        }
+        
+        if (ea_info.type == ea_type) {
+            /* Found the requested EA */
+            ea_head = (EAGenericHead*)current_ea;
+            
+            /* Calculate data size (total EA size minus header) */
+            size_t data_length = ea_head->attributeLength - sizeof(EAGenericHead);
+            *data_size = data_length;
+            
+            /* Check if buffer is large enough */
+            if (buffer_size < data_length) {
+                debug_print("Buffer too small for EA data: need %zu, have %zu", 
+                           data_length, buffer_size);
+                return UDFS_ERROR_INVALID_PARAM;
+            }
+            
+            /* Copy EA data (excluding header) */
+            if (data_length > 0) {
+                memcpy(buffer, current_ea + sizeof(EAGenericHead), data_length);
+            }
+            
+            debug_print("Read EA data: type=%d, size=%zu", ea_type, data_length);
+            return UDFS_OK;
+        }
+        
+        current_ea = next_ea;
+    }
+    
+    debug_print("Extended attribute type %d not found", ea_type);
+    return UDFS_ERROR_NOT_FOUND;
+}
+
+udfs_result_t udfs_get_extended_attribute_info(udfs_file_t *file, udfs_ea_type_t ea_type,
+                                              udfs_ea_info_t *ea_info) {
+    uint8_t *ea_space, *current_ea, *ea_end;
+    uint32_t ea_length;
+    udfs_ea_info_t current_ea_info;
+    
+    if (!file || !ea_info) {
+        return UDFS_ERROR_INVALID_PARAM;
+    }
+    
+    if (!file->volume || !file->volume->is_mounted || !file->node) {
+        return UDFS_ERROR_NOT_MOUNTED;
+    }
+    
+    /* Initialize output */
+    memset(ea_info, 0, sizeof(udfs_ea_info_t));
+    ea_info->type = ea_type;
+    strncpy(ea_info->name, get_ea_name(ea_type), sizeof(ea_info->name) - 1);
+    ea_info->name[sizeof(ea_info->name) - 1] = '\0';
+    ea_info->available = false;
+    
+    /* Get extended attributes space */
+    ea_space = get_extended_attributes(file->node, &ea_length);
+    if (!ea_space || ea_length == 0) {
+        debug_print("No extended attributes found");
+        return UDFS_OK; /* Return info with available=false */
+    }
+    
+    current_ea = ea_space;
+    ea_end = ea_space + ea_length;
+    
+    /* Search for the requested EA type */
+    while (current_ea) {
+        current_ea = parse_next_ea(current_ea, ea_end, &current_ea_info);
+        if (!current_ea) {
+            break; /* No more EAs or parse error */
+        }
+        
+        if (current_ea_info.type == ea_type) {
+            /* Found the requested EA */
+            *ea_info = current_ea_info;
+            debug_print("Found EA info: type=%d, length=%u, available=true", 
+                       ea_type, ea_info->length);
+            return UDFS_OK;
+        }
+    }
+    
+    debug_print("Extended attribute type %d not found", ea_type);
+    return UDFS_OK; /* Return info with available=false */
 }
