@@ -12,7 +12,9 @@
  * History     : 20011102 Gerrit Scholl, creation
  */
 
+#ifndef UDF_KERNEL_DRIVER
 #include <stdio.h>
+#endif
 
 #include "mytypes.h"
 #include "general.h"
