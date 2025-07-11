@@ -264,6 +264,224 @@ static udfs_file_type_t convert_file_type(uint8_t udf_type) {
     }
 }
 
+/* Find a node by path from root 
+ * Returns the node if found, NULL if not found
+ * Supports both absolute paths (starting with /) and relative paths
+ */
+static Node* find_node_by_path(udfs_volume_t *volume, const char *path) {
+    Node *current_node;
+    Node *child;
+    char *path_copy, *token, *saveptr;
+    bool found;
+    
+    if (!volume || !volume->mc || !path) {
+        return NULL;
+    }
+    
+    /* Start from root node */
+    current_node = volume->mc->rootNode;
+    if (!current_node) {
+        debug_print("No root node available");
+        return NULL;
+    }
+    
+    /* Handle root path "/" */
+    if (strcmp(path, "/") == 0) {
+        return current_node;
+    }
+    
+    /* Make a copy of the path for tokenization */
+    path_copy = strdup(path);
+    if (!path_copy) {
+        return NULL;
+    }
+    
+    /* Skip leading slash if present */
+    char *work_path = path_copy;
+    if (work_path[0] == '/') {
+        work_path++;
+    }
+    
+    /* Tokenize path and traverse */
+    token = strtok_r(work_path, "/", &saveptr);
+    while (token && current_node) {
+        debug_print("Looking for path component: %s", token);
+        
+        /* Search for this component in current directory */
+        found = false;
+        for (child = current_node->firstChild; child; child = child->nextInDirectory) {
+            if (child->unicodeName) {
+                /* Convert Unicode name to char for comparison - simplified */
+                char child_name[256];
+                if (child->unicodeNameLen < sizeof(child_name)) {
+                    /* Simple conversion: assume ASCII-compatible Unicode */
+                    for (uint32_t i = 0; i < child->unicodeNameLen && i < sizeof(child_name) - 1; i++) {
+                        child_name[i] = (char)(child->unicodeName[i] & 0xFF);
+                    }
+                    child_name[child->unicodeNameLen] = '\0';
+                    
+                    debug_print("Comparing with child: %s", child_name);
+                    if (strcmp(token, child_name) == 0) {
+                        current_node = child;
+                        found = true;
+                        debug_print("Found matching child: %s", child_name);
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (!found) {
+            debug_print("Path component not found: %s", token);
+            free(path_copy);
+            return NULL;
+        }
+        
+        token = strtok_r(NULL, "/", &saveptr);
+    }
+    
+    free(path_copy);
+    return current_node;
+}
+
+/* Internal file reading function using UDFCT APIs
+ * This is a simplified version that handles basic file reading
+ */
+static bool udfs_read_file_data(UdfMountContext *mc, Node *node,
+                               uint64_t file_offset, uint64_t nr_bytes,
+                               uint8_t *buffer, uint64_t *bytes_read) {
+    const MediumInfo *vmi;
+    uint32_t block_size;
+    uint64_t max_bytes;
+    uint32_t offset32;
+    uint8_t fe_ad_type;
+    UdfAllocationItem *ali;
+    FileEntry *fe;
+    
+    *bytes_read = 0;
+    
+    if (!mc || !node || !node->fe) {
+        return false;
+    }
+    
+    vmi = getTheMediumInfo();
+    if (!vmi) {
+        return false;
+    }
+    
+    block_size = vmi->blockSize;
+    fe = (FileEntry*)node->fe;
+    fe_ad_type = GET_ADTYPE(fe->icbTag.flags);
+    
+    /* Check file bounds */
+    max_bytes = fe->informationLength;
+    if (file_offset >= max_bytes) {
+        return true; /* EOF reached */
+    }
+    
+    if (file_offset + nr_bytes > max_bytes) {
+        nr_bytes = max_bytes - file_offset;
+    }
+    
+    if (nr_bytes == 0) {
+        return true;
+    }
+    
+    /* Handle embedded files (data in FE) */
+    if (fe_ad_type == ADT_INFE) {
+        if (buffer) {
+            memcpy(buffer,
+                   (uint8_t*)(pFE_startOfExtendedAttributes(node->fe)) +
+                   (*(pFE_lengthOfExtendedAttributes(node->fe))) +
+                   (uint32_t)file_offset,
+                   (uint32_t)nr_bytes);
+        }
+        *bytes_read = nr_bytes;
+        return true;
+    }
+    
+    /* For allocated files, we need allocation descriptors */
+    if (!node->al) {
+        debug_print("No allocation list for file");
+        return false;
+    }
+    
+    /* Find the allocation descriptor for this offset */
+    if (!nodeFindAllocationDescriptor(node, file_offset, &ali, &offset32)) {
+        debug_print("Could not find allocation descriptor");
+        return false;
+    }
+    
+    /* Read data extent by extent */
+    while (ali && nr_bytes > 0) {
+        uint8_t extent_type;
+        uint32_t read_this_pass;
+        uint32_t start_block, nr_of_blocks;
+        uint64_t left_in_extent;
+        uint8_t *temp_buffer = NULL;
+        uint32_t blocks_read;
+        uint16_t part_ref;
+        uint32_t logical_block;
+        
+        /* Calculate extent parameters */
+        left_in_extent = adGetExtentSize(&ali->aad.anyAd);
+        left_in_extent = ROUNDUPMULT(left_in_extent, block_size);
+        left_in_extent -= (uint64_t)offset32;
+        
+        read_this_pass = (uint32_t)MIN(nr_bytes, left_in_extent);
+        start_block = offset32 / block_size;
+        nr_of_blocks = 1 + ((offset32 + read_this_pass - 1) / block_size) - start_block;
+        
+        extent_type = adGetExtentType(&ali->aad.anyAd);
+        
+        if (extent_type == ADEL_NOT_RECORDED_NOT_ALLOCATED ||
+            extent_type == ADEL_NOT_RECORDED_BUT_ALLOCATED) {
+            /* Unrecorded extent - read as zeros */
+            if (buffer) {
+                memset(buffer, 0, read_this_pass);
+                buffer += read_this_pass;
+            }
+        } else {
+            /* Allocated extent - read from device */
+            if (!udfGetLocation(&ali->aad, node->al->itemAdType, 0, &part_ref, &logical_block)) {
+                debug_print("Could not get location for allocation descriptor");
+                return false;
+            }
+            
+            logical_block += start_block;
+            
+            if (buffer && nr_of_blocks > 0) {
+                /* Allocate temporary buffer for block-aligned reading */
+                temp_buffer = malloc(nr_of_blocks * block_size);
+                if (!temp_buffer) {
+                    debug_print("Could not allocate temporary buffer");
+                    return false;
+                }
+                
+                blocks_read = readBlocksFromPartition(mc, temp_buffer, part_ref, logical_block, nr_of_blocks);
+                if (blocks_read != nr_of_blocks) {
+                    debug_print("Could not read all blocks (got %u, expected %u)", blocks_read, nr_of_blocks);
+                    free(temp_buffer);
+                    return false;
+                }
+                
+                /* Copy relevant portion to output buffer */
+                memcpy(buffer, temp_buffer + (offset32 % block_size), read_this_pass);
+                buffer += read_this_pass;
+                
+                free(temp_buffer);
+            }
+        }
+        
+        nr_bytes -= read_this_pass;
+        *bytes_read += read_this_pass;
+        offset32 = 0; /* Subsequent extents start at beginning */
+        ali = ali->next;
+    }
+    
+    return true;
+}
+
 /* Fill file info structure from UDFCT Node */
 static void fill_file_info(const Node *node, udfs_file_info_t *info) {
     if (!node || !info) return;
@@ -457,18 +675,59 @@ udfs_result_t udfs_get_volume_info(udfs_volume_t *volume,
 }
 
 /*
- * File Operations - Basic stubs for now
+ * File Operations 
  */
 
 udfs_result_t udfs_open_file(udfs_volume_t *volume, const char *path, udfs_file_t **file) {
+    Node *node;
+    udfs_file_t *ufile;
+    FileEntry *fe;
+    
     if (!volume || !volume->is_mounted || !path || !file) {
         return UDFS_ERROR_INVALID_PARAM;
     }
     
     debug_print("Opening file: %s", path);
     
-    /* TODO: Implement file opening using UDFCT node traversal */
-    return UDFS_ERROR_NOT_SUPPORTED;
+    /* Find the node by path */
+    node = find_node_by_path(volume, path);
+    if (!node) {
+        debug_print("File not found: %s", path);
+        return UDFS_ERROR_NOT_FOUND;
+    }
+    
+    /* Check if it's a file */
+    if (!node->fe) {
+        debug_print("Node has no file entry: %s", path);
+        return UDFS_ERROR_NOT_FOUND;
+    }
+    
+    fe = (FileEntry*)node->fe;
+    if (fe->icbTag.fileType != 5) { /* 5 = UDF file type */
+        debug_print("Node is not a file: %s (type=%d)", path, fe->icbTag.fileType);
+        return UDFS_ERROR_NOT_FOUND;
+    }
+    
+    /* Read allocation descriptors if not already loaded */
+    if (!nodeReadAllocationDescriptors(volume->mc, node)) {
+        debug_print("Failed to read allocation descriptors for: %s", path);
+        return UDFS_ERROR_IO;
+    }
+    
+    /* Create file handle */
+    ufile = calloc(1, sizeof(udfs_file_t));
+    if (!ufile) {
+        return UDFS_ERROR_NO_MEMORY;
+    }
+    
+    ufile->volume = volume;
+    ufile->node = node;
+    ufile->position = 0;
+    ufile->size = fe->informationLength;
+    
+    debug_print("Successfully opened file: %s (size=%llu)", path, (unsigned long long)ufile->size);
+    *file = ufile;
+    return UDFS_OK;
 }
 
 udfs_result_t udfs_close_file(udfs_file_t *file) {
@@ -481,13 +740,49 @@ udfs_result_t udfs_close_file(udfs_file_t *file) {
 }
 
 udfs_result_t udfs_read_file(udfs_file_t *file, void *buffer, size_t size, size_t *bytes_read) {
+    uint64_t actual_bytes_read = 0;
+    bool read_ok;
+    
     if (!file || !buffer || !bytes_read) {
         return UDFS_ERROR_INVALID_PARAM;
     }
     
-    /* TODO: Implement file reading */
+    if (!file->volume || !file->volume->is_mounted || !file->node) {
+        return UDFS_ERROR_NOT_MOUNTED;
+    }
+    
     *bytes_read = 0;
-    return UDFS_ERROR_NOT_SUPPORTED;
+    
+    /* Check if position is beyond end of file */
+    if (file->position >= file->size) {
+        return UDFS_OK; /* EOF reached */
+    }
+    
+    /* Limit read size to what's available */
+    if (file->position + size > file->size) {
+        size = (size_t)(file->size - file->position);
+    }
+    
+    if (size == 0) {
+        return UDFS_OK;
+    }
+    
+    debug_print("Reading %zu bytes from position %llu", size, (unsigned long long)file->position);
+    
+    /* Use our custom file reading function */
+    read_ok = udfs_read_file_data(file->volume->mc, file->node, file->position, (uint64_t)size, 
+                                 (uint8_t*)buffer, &actual_bytes_read);
+    
+    if (!read_ok) {
+        debug_print("File read failed");
+        return UDFS_ERROR_IO;
+    }
+    
+    *bytes_read = (size_t)actual_bytes_read;
+    file->position += actual_bytes_read;
+    
+    debug_print("Successfully read %zu bytes", *bytes_read);
+    return UDFS_OK;
 }
 
 udfs_result_t udfs_seek_file(udfs_file_t *file, uint64_t offset) {
@@ -495,8 +790,15 @@ udfs_result_t udfs_seek_file(udfs_file_t *file, uint64_t offset) {
         return UDFS_ERROR_INVALID_PARAM;
     }
     
-    /* TODO: Implement file seeking */
-    return UDFS_ERROR_NOT_SUPPORTED;
+    if (!file->volume || !file->volume->is_mounted) {
+        return UDFS_ERROR_NOT_MOUNTED;
+    }
+    
+    /* Allow seeking beyond EOF (POSIX behavior) */
+    file->position = offset;
+    
+    debug_print("Seeked to position %llu", (unsigned long long)offset);
+    return UDFS_OK;
 }
 
 udfs_result_t udfs_tell_file(udfs_file_t *file, uint64_t *offset) {
@@ -518,18 +820,53 @@ udfs_result_t udfs_get_file_info(udfs_file_t *file, udfs_file_info_t *info) {
 }
 
 /*
- * Directory Operations - Basic stubs for now  
+ * Directory Operations
  */
 
 udfs_result_t udfs_open_dir(udfs_volume_t *volume, const char *path, udfs_dir_t **dir) {
+    Node *node;
+    udfs_dir_t *udir;
+    FileEntry *fe;
+    
     if (!volume || !volume->is_mounted || !path || !dir) {
         return UDFS_ERROR_INVALID_PARAM;
     }
     
     debug_print("Opening directory: %s", path);
     
-    /* TODO: Implement directory opening */
-    return UDFS_ERROR_NOT_SUPPORTED;
+    /* Find the node by path */
+    node = find_node_by_path(volume, path);
+    if (!node) {
+        debug_print("Directory not found: %s", path);
+        return UDFS_ERROR_NOT_FOUND;
+    }
+    
+    /* Check if it's a directory */
+    if (!node->fe) {
+        debug_print("Node has no file entry: %s", path);
+        return UDFS_ERROR_NOT_FOUND;
+    }
+    
+    fe = (FileEntry*)node->fe;
+    if (fe->icbTag.fileType != 4) { /* 4 = UDF directory type */
+        debug_print("Node is not a directory: %s (type=%d)", path, fe->icbTag.fileType);
+        return UDFS_ERROR_NOT_FOUND;
+    }
+    
+    /* Create directory handle */
+    udir = calloc(1, sizeof(udfs_dir_t));
+    if (!udir) {
+        return UDFS_ERROR_NO_MEMORY;
+    }
+    
+    udir->volume = volume;
+    udir->node = node;
+    udir->current_child = node->firstChild;
+    udir->position = 0;
+    
+    debug_print("Successfully opened directory: %s", path);
+    *dir = udir;
+    return UDFS_OK;
 }
 
 udfs_result_t udfs_close_dir(udfs_dir_t *dir) {
@@ -546,9 +883,28 @@ udfs_result_t udfs_read_dir(udfs_dir_t *dir, udfs_dir_entry_t *entry) {
         return UDFS_ERROR_INVALID_PARAM;
     }
     
-    /* TODO: Implement directory reading */
-    entry->valid = false;
-    return UDFS_ERROR_NOT_SUPPORTED;
+    if (!dir->volume || !dir->volume->is_mounted || !dir->node) {
+        return UDFS_ERROR_NOT_MOUNTED;
+    }
+    
+    /* Check if we have a current child to read */
+    if (!dir->current_child) {
+        entry->valid = false;
+        return UDFS_OK; /* End of directory */
+    }
+    
+    /* Fill in the directory entry */
+    fill_file_info(dir->current_child, &entry->info);
+    entry->valid = true;
+    
+    /* Move to next child */
+    dir->current_child = dir->current_child->nextInDirectory;
+    dir->position++;
+    
+    debug_print("Read directory entry: %s (type=%d)", 
+                entry->info.name, entry->info.type);
+    
+    return UDFS_OK;
 }
 
 udfs_result_t udfs_rewind_dir(udfs_dir_t *dir) {
@@ -562,23 +918,41 @@ udfs_result_t udfs_rewind_dir(udfs_dir_t *dir) {
 }
 
 /*
- * Path Operations - Basic stubs for now
+ * Path Operations
  */
 
 udfs_result_t udfs_stat(udfs_volume_t *volume, const char *path, udfs_file_info_t *info) {
+    Node *node;
+    
     if (!volume || !volume->is_mounted || !path || !info) {
         return UDFS_ERROR_INVALID_PARAM;
     }
     
-    /* TODO: Implement path stat */
-    return UDFS_ERROR_NOT_SUPPORTED;
+    debug_print("Getting info for path: %s", path);
+    
+    /* Find the node by path */
+    node = find_node_by_path(volume, path);
+    if (!node) {
+        debug_print("Path not found: %s", path);
+        return UDFS_ERROR_NOT_FOUND;
+    }
+    
+    /* Fill file info */
+    fill_file_info(node, info);
+    
+    debug_print("Successfully got info for: %s (type=%d, size=%llu)", 
+                path, info->type, (unsigned long long)info->size);
+    
+    return UDFS_OK;
 }
 
 bool udfs_exists(udfs_volume_t *volume, const char *path) {
+    Node *node;
+    
     if (!volume || !volume->is_mounted || !path) {
-        return 0;  /* Return int 0 for false for compatibility */
+        return false;
     }
     
-    /* TODO: Implement path existence check */
-    return 0;  /* Return int 0 for false for compatibility */
+    node = find_node_by_path(volume, path);
+    return (node != NULL);
 }
