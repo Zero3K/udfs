@@ -1,0 +1,27 @@
+# Build artifacts
+*.o
+*.a
+*.so
+*.dll
+*.dylib
+
+# Executables
+udf_test
+udfs_test
+udfs_example
+
+# Platform specific
+.DS_Store
+*.log
+
+# IDE/Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Temporary files
+/tmp/
+*.tmp
+*.bak
