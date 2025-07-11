@@ -23,12 +23,12 @@ This project creates a simple, focused file system driver for reading UDF volume
 - [x] Compilation and basic testing framework
 - [x] Error handling and debug infrastructure
 
-**Phase 2 - Core Implementation (🚧 IN PROGRESS)**
-- [ ] UDF volume mounting using UDFCT's mount logic
-- [ ] Basic file operations (open, read, seek, close)
-- [ ] Directory operations (open, read entries, close)
-- [ ] Path resolution and file/directory lookup
-- [ ] Volume information retrieval
+**Phase 2 - Core Implementation (✅ COMPLETED)**
+- [x] UDF volume mounting using UDFCT's mount logic
+- [x] Basic file operations (open, read, seek, close)
+- [x] Directory operations (open, read entries, close)
+- [x] Path resolution and file/directory lookup
+- [x] Volume information retrieval
 
 **Phase 3 - Advanced Features (📋 PLANNED)**
 - [ ] Extended file attributes support
@@ -156,7 +156,29 @@ int main() {
     udfs_get_volume_info(volume, label, sizeof(label), &total_size, NULL);
     printf("Volume: %s, Size: %llu bytes\n", label, total_size);
     
-    // TODO: File and directory operations when implemented
+    // List root directory
+    udfs_dir_t *dir;
+    result = udfs_open_dir(volume, "/", &dir);
+    if (result == UDFS_OK) {
+        udfs_dir_entry_t entry;
+        while (udfs_read_dir(dir, &entry) == UDFS_OK && entry.valid) {
+            printf("%s (%s, %llu bytes)\n", entry.info.name,
+                   entry.info.type == UDFS_TYPE_FILE ? "file" : "dir",
+                   entry.info.size);
+        }
+        udfs_close_dir(dir);
+    }
+    
+    // Read a file
+    udfs_file_t *file;
+    result = udfs_open_file(volume, "/README.TXT", &file);
+    if (result == UDFS_OK) {
+        char buffer[256];
+        size_t bytes_read;
+        udfs_read_file(file, buffer, sizeof(buffer), &bytes_read);
+        printf("Read %zu bytes from README.TXT\n", bytes_read);
+        udfs_close_file(file);
+    }
     
     // Unmount
     udfs_unmount(volume);
