@@ -234,7 +234,7 @@ UdfsCreateVcb(
     InitializeListHead(&NewVcb->FcbList);
     
     /* Set up FCB header */
-    FsRtlSetupAdvancedHeader(&NewVcb->Header, &NewVcb->VcbResource);
+    FsRtlSetupAdvancedHeader(&NewVcb->Header, &NewVcb->AdvancedFcbHeaderMutex);
     
     /* Initialize UDFCT context */
     Status = UdfsInitializeUdfct(TargetDevice, &NewVcb->MountContext);
