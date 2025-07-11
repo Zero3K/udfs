@@ -34,14 +34,14 @@
 # enable following definitions if appropriate
 #
 
-PLATFORM = -DLINUX			# LINUX   : Linux
+## PLATFORM = -DLINUX			# LINUX   : Linux
 ## PLATFORM = -DSOLARIS			# SOLARIS : Sun Solaris
 ## PLATFORM = -DHPUX			# HPUX    : HP-UX
 ## PLATFORM = -DNETBSD			# NETBSD  : NetBSD
 ## PLATFORM = -DMACOSX			# MACOSX  : Macintosh OS X
 
 #  - Enable next line for LINUX, SOLARIS, HPUX :
-PLATFORM_SZ64FLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D__USE_LARGEFILE64
+##  PLATFORM_SZ64FLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D__USE_LARGEFILE64
 
 #  ranlib default definition:
    PLATFORM_RANLIB = echo ranlib not needed for
