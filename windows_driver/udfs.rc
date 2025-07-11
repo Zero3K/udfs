@@ -1,0 +1,7 @@
+#include <windows.h>
+
+#define REACTOS_STR_FILE_DESCRIPTION    "UDF File System Driver"
+#define REACTOS_STR_INTERNAL_NAME       "udfs"
+#define REACTOS_STR_ORIGINAL_FILENAME   "udfs.sys"
+
+#include <reactos/version.rc>
