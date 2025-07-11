@@ -14,10 +14,8 @@
  * History     : 20000922 GS, AS: creation
  */
 
-#ifndef UDF_KERNEL_DRIVER
 #include <stdio.h>
 #include <string.h>
-#endif
 
 #include "general.h"
 #include "mytypes.h"

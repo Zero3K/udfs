@@ -14,11 +14,9 @@
  * Author(s)   : Gerrit Scholl
  */
 
-#ifndef UDF_KERNEL_DRIVER
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#endif
 
 #include "general.h"
 #include "uctgeneral.h"

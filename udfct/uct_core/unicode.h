@@ -15,9 +15,7 @@
 #ifndef __UCT_UNICODE_H__
 #define __UCT_UNICODE_H__
 
-#ifndef UDF_KERNEL_DRIVER
 #include <stddef.h>
-#endif
 
 #include "mytypes.h"
 

@@ -20,9 +20,12 @@
 /* set the structure packing to one
  */
 #ifdef __GNUC__
-#define PACKED __attribute((aligned(1),packed))
+#define PACKED 
+#define STRUCT_PACKED __attribute__((aligned(1),packed))
+#pragma pack(1)
 #else
 #define PACKED
+#define STRUCT_PACKED
 #pragma pack(1)
 #endif
 
