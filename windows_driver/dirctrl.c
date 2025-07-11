@@ -141,67 +141,61 @@ UdfsEnumerateDirectory(
     
     *Information = 0;
     
-    __try {
-        /* For demonstration, return a few dummy entries */
-        if (Ccb->DirectoryIndex == 0) {
-            /* Return "." entry */
-            Status = UdfsCreateDirectoryEntry(
-                L".",
-                1 * sizeof(WCHAR),
-                FILE_ATTRIBUTE_DIRECTORY,
-                FileInformationClass,
-                CurrentBuffer,
-                BufferLength - BytesWritten,
-                &BytesWritten
-                );
-                
-            if (NT_SUCCESS(Status)) {
-                CurrentBuffer += BytesWritten;
-                FoundEntry = TRUE;
-                Ccb->DirectoryIndex++;
-                
-                if (ReturnSingleEntry) {
-                    goto complete;
-                }
+    /* For demonstration, return a few dummy entries */
+    if (Ccb->DirectoryIndex == 0) {
+        /* Return "." entry */
+        Status = UdfsCreateDirectoryEntry(
+            L".",
+            1 * sizeof(WCHAR),
+            FILE_ATTRIBUTE_DIRECTORY,
+            FileInformationClass,
+            CurrentBuffer,
+            BufferLength - BytesWritten,
+            &BytesWritten
+            );
+            
+        if (NT_SUCCESS(Status)) {
+            CurrentBuffer += BytesWritten;
+            FoundEntry = TRUE;
+            Ccb->DirectoryIndex++;
+            
+            if (ReturnSingleEntry) {
+                goto complete;
             }
         }
-        
-        if (Ccb->DirectoryIndex == 1 && BytesWritten < BufferLength) {
-            /* Return ".." entry */
-            ULONG EntrySize;
-            Status = UdfsCreateDirectoryEntry(
-                L"..",
-                2 * sizeof(WCHAR),
-                FILE_ATTRIBUTE_DIRECTORY,
-                FileInformationClass,
-                CurrentBuffer,
-                BufferLength - BytesWritten,
-                &EntrySize
-                );
-                
-            if (NT_SUCCESS(Status)) {
-                BytesWritten += EntrySize;
-                FoundEntry = TRUE;
-                Ccb->DirectoryIndex++;
-                
-                if (ReturnSingleEntry) {
-                    goto complete;
-                }
-            }
-        }
-        
-        /* No more entries */
-        if (!FoundEntry) {
-            Status = STATUS_NO_MORE_FILES;
-        }
-        
-complete:
-        *Information = BytesWritten;
-        
-    } __except(EXCEPTION_EXECUTE_HANDLER) {
-        Status = STATUS_INVALID_USER_BUFFER;
-        *Information = 0;
     }
+    
+    if (Ccb->DirectoryIndex == 1 && BytesWritten < BufferLength) {
+        /* Return ".." entry */
+        ULONG EntrySize;
+        Status = UdfsCreateDirectoryEntry(
+            L"..",
+            2 * sizeof(WCHAR),
+            FILE_ATTRIBUTE_DIRECTORY,
+            FileInformationClass,
+            CurrentBuffer,
+            BufferLength - BytesWritten,
+            &EntrySize
+            );
+            
+        if (NT_SUCCESS(Status)) {
+            BytesWritten += EntrySize;
+            FoundEntry = TRUE;
+            Ccb->DirectoryIndex++;
+            
+            if (ReturnSingleEntry) {
+                goto complete;
+            }
+        }
+    }
+    
+    /* No more entries */
+    if (!FoundEntry) {
+        Status = STATUS_NO_MORE_FILES;
+    }
+    
+complete:
+    *Information = BytesWritten;
     
     return Status;
 }
@@ -232,7 +226,7 @@ UdfsCreateDirectoryEntry(
                 RtlZeroMemory(DirInfo, RequiredSize);
                 DirInfo->FileAttributes = FileAttributes;
                 DirInfo->FileNameLength = FileNameLength;
-                RtlCopyMemory(DirInfo->FileName, FileName, FileNameLength);
+                memcpy(DirInfo->FileName, FileName, FileNameLength);
                 
                 *EntrySize = RequiredSize;
             }
@@ -250,7 +244,7 @@ UdfsCreateDirectoryEntry(
                 RtlZeroMemory(DirInfo, RequiredSize);
                 DirInfo->FileAttributes = FileAttributes;
                 DirInfo->FileNameLength = FileNameLength;
-                RtlCopyMemory(DirInfo->FileName, FileName, FileNameLength);
+                memcpy(DirInfo->FileName, FileName, FileNameLength);
                 
                 *EntrySize = RequiredSize;
             }
