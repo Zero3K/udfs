@@ -120,12 +120,12 @@ UdfsReadFileData(
         return STATUS_INVALID_PARAMETER;
     }
     
-    vcb = (PUDFS_VCB)Fcb->Header.Vcb;
+    vcb = Fcb->Vcb;
     mc = vcb->MountContext;
     fileNode = Fcb->UdfNode;
     
     /* Use UDFCT to get the file's allocation list */
-    allocList = &fileNode->al;
+    allocList = fileNode->al;
     if (!allocList) {
         return STATUS_FILE_INVALID;
     }
@@ -140,7 +140,7 @@ UdfsReadFileData(
         
         while (allocItem && remainingBytes > 0) {
             AnyAllocationDescriptor *aad = &allocItem->aad;
-            Uint32 extentLength = aad->anyAd.extentLength & UDF_EXTENT_LENGTH_MASK;
+            Uint32 extentLength = aad->anyAd.extentLength & ADEL_MASK;
             Uint32 extentType = (aad->anyAd.extentLength >> 30) & 0x3;
             Uint32 logicalBlockNr;
             Uint16 partRefNumber;
@@ -156,8 +156,8 @@ UdfsReadFileData(
             }
             
             /* Get the location of this extent */
-            if (!udfGetLocation(aad, allocList->adType, 
-                               allocList->shortPartRefNumber,
+            if (!udfGetLocation(aad, allocList->itemAdType, 
+                               fileNode->fePartRef,
                                &partRefNumber, &logicalBlockNr)) {
                 allocItem = allocItem->next;
                 continue;
@@ -194,7 +194,7 @@ UdfsReadFileData(
                 }
                 
                 /* Copy the relevant portion to output buffer */
-                RtlCopyMemory(outputBuffer, (PUCHAR)blockBuffer + blockOffset, bytesFromBlock);
+                memcpy(outputBuffer, (PUCHAR)blockBuffer + blockOffset, bytesFromBlock);
                 
                 outputBuffer += bytesFromBlock;
                 bytesRead += bytesFromBlock;
@@ -266,10 +266,10 @@ UdfsReadFileDataFromUdfct(
             
             /* This is where we would use UDFCT to read the block */
             /* For now, just zero the data */
-            RtlZeroMemory(BlockBuffer, sizeof(BlockBuffer));
+            memset(BlockBuffer, 0, sizeof(BlockBuffer));
             
             /* Copy the relevant portion to output buffer */
-            RtlCopyMemory(OutputBuffer, BlockBuffer + BlockOffset, ChunkSize);
+            memcpy(OutputBuffer, BlockBuffer + BlockOffset, ChunkSize);
             
             /* Update counters */
             OutputBuffer += ChunkSize;

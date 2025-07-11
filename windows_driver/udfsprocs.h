@@ -201,6 +201,9 @@ typedef struct _UDFS_FCB {
     /* Links */
     LIST_ENTRY VcbLinks;
     
+    /* VCB pointer */
+    PUDFS_VCB Vcb;
+    
     /* File info from UDFCT */
     Node *UdfNode;                  /* UDFCT file node */
     LARGE_INTEGER FileSize;

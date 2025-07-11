@@ -30,7 +30,7 @@ UdfsWrite(
     
     Fcb = (PUDFS_FCB)FileObject->FsContext;
     Ccb = (PUDFS_CCB)FileObject->FsContext2;
-    Vcb = (PUDFS_VCB)Fcb->Header.Vcb;
+    Vcb = Fcb->Vcb;
     
     /* Check if volume is read-only */
     if (Vcb->IsReadOnly) {
@@ -130,7 +130,7 @@ UdfsWriteFileData(
         return STATUS_INVALID_PARAMETER;
     }
     
-    vcb = (PUDFS_VCB)Fcb->Header.Vcb;
+    vcb = Fcb->Vcb;
     mc = vcb->MountContext;
     fileNode = Fcb->UdfNode;
     
@@ -140,7 +140,7 @@ UdfsWriteFileData(
     }
     
     /* Use UDFCT to get the file's allocation list */
-    allocList = &fileNode->al;
+    allocList = fileNode->al;
     if (!allocList && needsNewAllocation) {
         /* Need to allocate space for new file */
         Status = UdfsAllocateFileSpace(Fcb, FileOffset.QuadPart + Length);
@@ -159,7 +159,7 @@ UdfsWriteFileData(
         
         while (allocItem && remainingBytes > 0) {
             AnyAllocationDescriptor *aad = &allocItem->aad;
-            Uint32 extentLength = aad->anyAd.extentLength & UDF_EXTENT_LENGTH_MASK;
+            Uint32 extentLength = aad->anyAd.extentLength & ADEL_MASK;
             Uint32 extentType = (aad->anyAd.extentLength >> 30) & 0x3;
             Uint32 logicalBlockNr;
             Uint16 partRefNumber;
@@ -175,8 +175,8 @@ UdfsWriteFileData(
             }
             
             /* Get the location of this extent */
-            if (!udfGetLocation(aad, allocList->adType, 
-                               allocList->shortPartRefNumber,
+            if (!udfGetLocation(aad, allocList->itemAdType, 
+                               fileNode->fePartRef,
                                &partRefNumber, &logicalBlockNr)) {
                 allocItem = allocItem->next;
                 continue;
@@ -210,12 +210,12 @@ UdfsWriteFileData(
                     if (readBlocksFromPartition(mc, blockBuffer, partRefNumber, 
                                                blockNumber, 1) != 1) {
                         /* If read fails, zero the block */
-                        RtlZeroMemory(blockBuffer, blockSize);
+                        memset(blockBuffer, 0, blockSize);
                     }
                 }
                 
                 /* Copy the data to the block buffer */
-                RtlCopyMemory((PUCHAR)blockBuffer + blockOffset, inputBuffer, bytesToBlock);
+                memcpy((PUCHAR)blockBuffer + blockOffset, inputBuffer, bytesToBlock);
                 
                 /* Write the block using UDFCT device interface */
                 if (!UdfsWriteBlockToPartition(mc, blockBuffer, partRefNumber, 
@@ -261,7 +261,7 @@ UdfsAllocateFileSpace(
     ULONG blocksNeeded;
     ULONG currentBlocks;
     
-    vcb = (PUDFS_VCB)Fcb->Header.Vcb;
+    vcb = Fcb->Vcb;
     mc = vcb->MountContext;
     fileNode = Fcb->UdfNode;
     
