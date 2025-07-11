@@ -11,12 +11,24 @@
 #include <time.h>
 #include <stdio.h>
 
+#ifndef MIN
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#endif
+
 /* Internal structure for mounted volume */
 struct udfs_volume {
     Device *device;
     UdfMountContext *mc;
     char *source_path;
     bool is_mounted;
+    
+    /* Performance optimization: simple directory cache (Phase 3) */
+    struct {
+        char cached_path[512];        /* Path of cached directory */
+        Node *cached_node;            /* Cached directory node */
+        uint32_t cache_version;       /* Simple versioning for cache invalidation */
+        bool valid;                   /* Cache validity flag */
+    } dir_cache;
 };
 
 /* Internal structure for open file */
@@ -25,6 +37,15 @@ struct udfs_file {
     Node *node;
     uint64_t position;
     uint64_t size;
+    
+    /* Performance optimization: simple read-ahead buffer (Phase 3) */
+    struct {
+        uint8_t *buffer;              /* Read-ahead buffer */
+        size_t buffer_size;           /* Size of buffer */
+        uint64_t buffer_start;        /* File offset of buffer start */
+        size_t buffer_valid;          /* Valid bytes in buffer */
+        bool enabled;                 /* Buffer enabled flag */
+    } read_buffer;
 };
 
 /* Internal structure for open directory */
@@ -196,7 +217,10 @@ static Device* create_image_device(const char *image_path) {
     device->readBlock = simpleImageReadBlocks;
     device->closeAndFreeImpUse = simpleImageCloseAndFreeImpUse;
     
-    /* Initialize medium info */
+    /* Initialize medium info with basic single session setup
+     * Multi-session detection can be enhanced later by reading the
+     * Volume Recognition Sequence and Anchor Volume Descriptor Pointers
+     */
     clearMediumInfo(&device->mediumInfo);
     device->mediumInfo.blockSize = imageImpUse->block_size;
     device->mediumInfo.lastValidBlockNr = (Uint32)((file_size / imageImpUse->block_size) - 1);
@@ -204,12 +228,21 @@ static Device* create_image_device(const char *image_path) {
     device->mediumInfo.writabilityType = MTYPE_WR_UNKNOWN;
     device->mediumInfo.sequentialType = MTYPE_SE_UNKNOWN; 
     device->mediumInfo.closedType = MTYPE_CL_UNKNOWN;
-    device->mediumInfo.numberOfSessions = 1;
+    device->mediumInfo.numberOfSessions = 0;  /* Will be set by addSessionToMediumInfo */
     device->mediumInfo.sessionStartBlocks = NULL;  /* Will be allocated by addSessionToMediumInfo */
-    device->mediumInfo.verifySession = 1;
+    device->mediumInfo.verifySession = 0;  /* Use first session as verify session */
     
-    /* Add session 0 starting at block 0 */
+    /* Add session 0 starting at block 0 (basic single-session setup)
+     * In a more advanced implementation, we would scan for multiple sessions
+     * by looking for multiple Anchor Volume Descriptor Pointers
+     */
     addSessionToMediumInfo(&device->mediumInfo, 0);
+    
+    /* TODO: Enhanced multi-session detection could be added here by:
+     * 1. Scanning for Anchor Volume Descriptor Pointers at standard locations
+     * 2. Detecting different UDF revisions in different sessions
+     * 3. Supporting incremental UDF media (like DVD+RW with multiple writes)
+     */
     
     debug_print("Created image device: %llu bytes, %u blocks", 
                 (unsigned long long)file_size, device->mediumInfo.lastValidBlockNr + 1);
@@ -254,7 +287,198 @@ static uint64_t timestamp_to_unix(const Timestamp *ts) {
     return (uint64_t)mktime(&tm);
 }
 
-/* Convert UDFCT file type to UDFS file type */
+/* Convert UDFCT extended attribute type to UDFS type */
+static udfs_ea_type_t convert_ea_type(uint32_t udf_ea_type) {
+    switch (udf_ea_type) {
+        case 1: return UDFS_EA_CHARSET_INFO;
+        case 5: return UDFS_EA_FILE_TIMES;
+        case 6: return UDFS_EA_INFO_TIMES;
+        case 12: return UDFS_EA_DEVICE_SPEC;
+        case 2048: return UDFS_EA_IMPL_USE;
+        case 65536: return UDFS_EA_APP_USE;
+        default: return UDFS_EA_CHARSET_INFO; /* fallback */
+    }
+}
+
+/* Get human-readable name for extended attribute type */
+static const char* get_ea_name(udfs_ea_type_t ea_type) {
+    switch (ea_type) {
+        case UDFS_EA_CHARSET_INFO: return "Character Set Information";
+        case UDFS_EA_FILE_TIMES: return "File Times";
+        case UDFS_EA_INFO_TIMES: return "Information Times";
+        case UDFS_EA_DEVICE_SPEC: return "Device Specification";
+        case UDFS_EA_IMPL_USE: return "Implementation Use";
+        case UDFS_EA_APP_USE: return "Application Use";
+        default: return "Unknown";
+    }
+}
+
+/* Initialize directory cache (Phase 3 performance optimization) */
+static void init_dir_cache(udfs_volume_t *volume) {
+    if (!volume) return;
+    
+    volume->dir_cache.cached_path[0] = '\0';
+    volume->dir_cache.cached_node = NULL;
+    volume->dir_cache.cache_version = 0;
+    volume->dir_cache.valid = false;
+}
+
+/* Check if path is in directory cache */
+static Node* get_cached_dir_node(udfs_volume_t *volume, const char *path) {
+    if (!volume || !path || !volume->dir_cache.valid) {
+        return NULL;
+    }
+    
+    if (strcmp(volume->dir_cache.cached_path, path) == 0) {
+        debug_print("Directory cache hit for: %s", path);
+        return volume->dir_cache.cached_node;
+    }
+    
+    return NULL;
+}
+
+/* Cache a directory node */
+static void cache_dir_node(udfs_volume_t *volume, const char *path, Node *node) {
+    if (!volume || !path || !node) return;
+    
+    strncpy(volume->dir_cache.cached_path, path, sizeof(volume->dir_cache.cached_path) - 1);
+    volume->dir_cache.cached_path[sizeof(volume->dir_cache.cached_path) - 1] = '\0';
+    volume->dir_cache.cached_node = node;
+    volume->dir_cache.cache_version++;
+    volume->dir_cache.valid = true;
+    
+    debug_print("Cached directory: %s", path);
+}
+
+/* Invalidate directory cache */
+static void invalidate_dir_cache(udfs_volume_t *volume) {
+    if (!volume) return;
+    
+    volume->dir_cache.valid = false;
+    debug_print("Directory cache invalidated");
+}
+
+/* Initialize file read buffer (Phase 3 performance optimization) */
+static void init_read_buffer(udfs_file_t *file) {
+    if (!file) return;
+    
+    /* Use a 64KB read-ahead buffer for better performance */
+    file->read_buffer.buffer_size = 65536;
+    file->read_buffer.buffer = malloc(file->read_buffer.buffer_size);
+    file->read_buffer.buffer_start = 0;
+    file->read_buffer.buffer_valid = 0;
+    file->read_buffer.enabled = (file->read_buffer.buffer != NULL);
+    
+    if (file->read_buffer.enabled) {
+        debug_print("Initialized %zu byte read buffer", file->read_buffer.buffer_size);
+    } else {
+        debug_print("Failed to allocate read buffer, using direct reads");
+    }
+}
+
+/* Clean up file read buffer */
+static void cleanup_read_buffer(udfs_file_t *file) {
+    if (!file) return;
+    
+    if (file->read_buffer.buffer) {
+        free(file->read_buffer.buffer);
+        file->read_buffer.buffer = NULL;
+    }
+    file->read_buffer.enabled = false;
+}
+
+/* Check if data is available in read buffer */
+static bool is_data_in_buffer(udfs_file_t *file, uint64_t offset, size_t size, 
+                             size_t *buffer_offset, size_t *available_size) {
+    if (!file || !file->read_buffer.enabled || !buffer_offset || !available_size) {
+        return false;
+    }
+    
+    uint64_t buffer_end = file->read_buffer.buffer_start + file->read_buffer.buffer_valid;
+    
+    /* Check if requested data overlaps with buffer */
+    if (offset >= file->read_buffer.buffer_start && offset < buffer_end) {
+        *buffer_offset = (size_t)(offset - file->read_buffer.buffer_start);
+        *available_size = MIN(size, file->read_buffer.buffer_valid - *buffer_offset);
+        debug_print("Buffer hit: offset=%llu, available=%zu", 
+                   (unsigned long long)offset, *available_size);
+        return true;
+    }
+    
+    return false;
+}
+
+/* Parse extended attributes from file entry
+ * Returns pointer to EA space and fills in length
+ */
+static uint8_t* get_extended_attributes(Node *node, uint32_t *ea_length) {
+    uint32_t length;
+    uint8_t *ea_start;
+    
+    if (!node || !node->fe || !ea_length) {
+        return NULL;
+    }
+    
+    /* Get EA length and start from file entry */
+    length = *(pFE_lengthOfExtendedAttributes(node->fe));
+    *ea_length = length;
+    
+    if (length == 0) {
+        return NULL; /* No extended attributes */
+    }
+    
+    /* Get start of EA space */
+    ea_start = (uint8_t*)pFE_startOfExtendedAttributes(node->fe);
+    
+    debug_print("Found %u bytes of extended attributes", length);
+    return ea_start;
+}
+
+/* Parse next extended attribute from EA space
+ * Returns pointer to next EA or NULL if done
+ * Fills in ea_info with information about current EA
+ */
+static uint8_t* parse_next_ea(uint8_t *current_ea, uint8_t *ea_end, udfs_ea_info_t *ea_info) {
+    EAGenericHead *ea_head;
+    uint32_t ea_length;
+    
+    if (!current_ea || !ea_end || !ea_info || current_ea >= ea_end) {
+        return NULL;
+    }
+    
+    /* Check if we have enough space for EA header */
+    if (current_ea + sizeof(EAGenericHead) > ea_end) {
+        debug_print("Not enough space for EA header");
+        return NULL;
+    }
+    
+    ea_head = (EAGenericHead*)current_ea;
+    ea_length = ea_head->attributeLength;
+    
+    /* Validate EA length */
+    if (ea_length < sizeof(EAGenericHead) || current_ea + ea_length > ea_end) {
+        debug_print("Invalid EA length: %u", ea_length);
+        return NULL;
+    }
+    
+    /* Fill in EA info */
+    ea_info->type = convert_ea_type(ea_head->attributeType);
+    ea_info->length = ea_length;
+    strncpy(ea_info->name, get_ea_name(ea_info->type), sizeof(ea_info->name) - 1);
+    ea_info->name[sizeof(ea_info->name) - 1] = '\0';
+    ea_info->available = true;
+    
+    debug_print("Found EA: type=%u, length=%u, name=%s", 
+                ea_head->attributeType, ea_length, ea_info->name);
+    
+    /* Return pointer to next EA (aligned to 4-byte boundary) */
+    uint8_t *next_ea = current_ea + ea_length;
+    
+    /* Align to 4-byte boundary as required by UDF */
+    next_ea = (uint8_t*)(((uintptr_t)next_ea + 3) & ~3);
+    
+    return (next_ea < ea_end) ? next_ea : NULL;
+}
 static udfs_file_type_t convert_file_type(uint8_t udf_type) {
     switch (udf_type) {
         case 4: return UDFS_TYPE_DIRECTORY;  /* UDF directory */
@@ -267,6 +491,7 @@ static udfs_file_type_t convert_file_type(uint8_t udf_type) {
 /* Find a node by path from root 
  * Returns the node if found, NULL if not found
  * Supports both absolute paths (starting with /) and relative paths
+ * Uses proper Unicode filename handling and directory caching (Phase 3)
  */
 static Node* find_node_by_path(udfs_volume_t *volume, const char *path) {
     Node *current_node;
@@ -278,6 +503,12 @@ static Node* find_node_by_path(udfs_volume_t *volume, const char *path) {
         return NULL;
     }
     
+    /* Check directory cache first for performance */
+    Node *cached_node = get_cached_dir_node(volume, path);
+    if (cached_node) {
+        return cached_node;
+    }
+    
     /* Start from root node */
     current_node = volume->mc->rootNode;
     if (!current_node) {
@@ -287,6 +518,7 @@ static Node* find_node_by_path(udfs_volume_t *volume, const char *path) {
     
     /* Handle root path "/" */
     if (strcmp(path, "/") == 0) {
+        cache_dir_node(volume, path, current_node);
         return current_node;
     }
     
@@ -310,23 +542,14 @@ static Node* find_node_by_path(udfs_volume_t *volume, const char *path) {
         /* Search for this component in current directory */
         found = false;
         for (child = current_node->firstChild; child; child = child->nextInDirectory) {
-            if (child->unicodeName) {
-                /* Convert Unicode name to char for comparison - simplified */
-                char child_name[256];
-                if (child->unicodeNameLen < sizeof(child_name)) {
-                    /* Simple conversion: assume ASCII-compatible Unicode */
-                    for (uint32_t i = 0; i < child->unicodeNameLen && i < sizeof(child_name) - 1; i++) {
-                        child_name[i] = (char)(child->unicodeName[i] & 0xFF);
-                    }
-                    child_name[child->unicodeNameLen] = '\0';
-                    
-                    debug_print("Comparing with child: %s", child_name);
-                    if (strcmp(token, child_name) == 0) {
-                        current_node = child;
-                        found = true;
-                        debug_print("Found matching child: %s", child_name);
-                        break;
-                    }
+            /* Use UDFCT's proper Unicode string comparison function */
+            bool head_matches_result = false;
+            if (stringIsUnicodeName(child, token, (bool*)&head_matches_result)) {
+                if (!head_matches_result) { /* Exact match */
+                    current_node = child;
+                    found = true;
+                    debug_print("Found matching child (Unicode): %s", token);
+                    break;
                 }
             }
         }
@@ -341,6 +564,15 @@ static Node* find_node_by_path(udfs_volume_t *volume, const char *path) {
     }
     
     free(path_copy);
+    
+    /* Cache the result if it's a directory */
+    if (current_node && current_node->fe) {
+        FileEntry *fe = (FileEntry*)current_node->fe;
+        if (fe->icbTag.fileType == 4) { /* UDF directory type */
+            cache_dir_node(volume, path, current_node);
+        }
+    }
+    
     return current_node;
 }
 
@@ -482,17 +714,35 @@ static bool udfs_read_file_data(UdfMountContext *mc, Node *node,
     return true;
 }
 
-/* Fill file info structure from UDFCT Node */
+/* Fill file info structure from UDFCT Node 
+ * Uses proper Unicode to UTF-8 conversion (Phase 3)
+ */
 static void fill_file_info(const Node *node, udfs_file_info_t *info) {
     if (!node || !info) return;
     
     memset(info, 0, sizeof(udfs_file_info_t));
     
-    /* Copy file name */
-    if (node->unicodeName) {
-        /* Convert Unicode name to UTF-8 - simplified */
-        strncpy(info->name, (const char*)node->unicodeName, sizeof(info->name) - 1);
-        info->name[sizeof(info->name) - 1] = '\0';
+    /* Copy file name using proper Unicode conversion */
+    if (node->unicodeName && node->unicodeNameLen > 0) {
+        /* Use UDFCT's Unicode to char conversion function */
+        Byte converted_name[256];
+        if (convertUnicode2Char(node->unicodeName, (Uint8)node->unicodeNameLen, converted_name)) {
+            /* Safely copy the converted name */
+            strncpy(info->name, (const char*)converted_name, sizeof(info->name) - 1);
+            info->name[sizeof(info->name) - 1] = '\0';
+            debug_print("Converted Unicode name: %s (length=%u)", info->name, node->unicodeNameLen);
+        } else {
+            /* Fallback to simplified conversion if UDFCT function fails */
+            size_t copy_len = MIN(node->unicodeNameLen, sizeof(info->name) - 1);
+            for (size_t i = 0; i < copy_len; i++) {
+                info->name[i] = (char)(node->unicodeName[i] & 0xFF);
+            }
+            info->name[copy_len] = '\0';
+            debug_print("Used fallback Unicode conversion: %s", info->name);
+        }
+    } else {
+        strcpy(info->name, "<no name>");
+        debug_print("Node has no Unicode name");
     }
     
     /* Set file type and size */
@@ -605,6 +855,9 @@ udfs_result_t udfs_mount_image(const char *image_path, udfs_volume_t **volume) {
     vol->mc = mc;
     vol->is_mounted = true;
     
+    /* Initialize performance optimizations */
+    init_dir_cache(vol);
+    
     debug_print("Successfully mounted UDF volume");
     *volume = vol;
     return UDFS_OK;
@@ -626,6 +879,9 @@ udfs_result_t udfs_unmount(udfs_volume_t *volume) {
     }
     
     debug_print("Unmounting UDF volume");
+    
+    /* Invalidate caches */
+    invalidate_dir_cache(volume);
     
     /* Clean up UDFCT structures */
     if (volume->mc) {
@@ -725,6 +981,9 @@ udfs_result_t udfs_open_file(udfs_volume_t *volume, const char *path, udfs_file_
     ufile->position = 0;
     ufile->size = fe->informationLength;
     
+    /* Initialize performance optimizations */
+    init_read_buffer(ufile);
+    
     debug_print("Successfully opened file: %s (size=%llu)", path, (unsigned long long)ufile->size);
     *file = ufile;
     return UDFS_OK;
@@ -735,6 +994,9 @@ udfs_result_t udfs_close_file(udfs_file_t *file) {
         return UDFS_ERROR_INVALID_PARAM;
     }
     
+    /* Clean up performance optimizations */
+    cleanup_read_buffer(file);
+    
     free(file);
     return UDFS_OK;
 }
@@ -742,6 +1004,7 @@ udfs_result_t udfs_close_file(udfs_file_t *file) {
 udfs_result_t udfs_read_file(udfs_file_t *file, void *buffer, size_t size, size_t *bytes_read) {
     uint64_t actual_bytes_read = 0;
     bool read_ok;
+    size_t buffer_offset, available_size;
     
     if (!file || !buffer || !bytes_read) {
         return UDFS_ERROR_INVALID_PARAM;
@@ -769,19 +1032,49 @@ udfs_result_t udfs_read_file(udfs_file_t *file, void *buffer, size_t size, size_
     
     debug_print("Reading %zu bytes from position %llu", size, (unsigned long long)file->position);
     
-    /* Use our custom file reading function */
+    /* Try to use read buffer for performance */
+    if (is_data_in_buffer(file, file->position, size, &buffer_offset, &available_size)) {
+        /* Copy data from buffer */
+        memcpy(buffer, file->read_buffer.buffer + buffer_offset, available_size);
+        *bytes_read = available_size;
+        file->position += available_size;
+        
+        debug_print("Read %zu bytes from buffer cache", *bytes_read);
+        
+        /* If we got all the data from cache, we're done */
+        if (available_size == size) {
+            return UDFS_OK;
+        }
+        
+        /* Otherwise, read remaining data and update pointers */
+        buffer = (uint8_t*)buffer + available_size;
+        size -= available_size;
+    }
+    
+    /* Read remaining data using UDFCT */
+    uint64_t remaining_bytes_read = 0;
     read_ok = udfs_read_file_data(file->volume->mc, file->node, file->position, (uint64_t)size, 
-                                 (uint8_t*)buffer, &actual_bytes_read);
+                                 (uint8_t*)buffer, &remaining_bytes_read);
     
     if (!read_ok) {
         debug_print("File read failed");
         return UDFS_ERROR_IO;
     }
     
-    *bytes_read = (size_t)actual_bytes_read;
-    file->position += actual_bytes_read;
+    *bytes_read += (size_t)remaining_bytes_read;
+    file->position += remaining_bytes_read;
     
-    debug_print("Successfully read %zu bytes", *bytes_read);
+    /* Update read buffer with newly read data if appropriate */
+    if (file->read_buffer.enabled && remaining_bytes_read > 0 && remaining_bytes_read <= file->read_buffer.buffer_size) {
+        file->read_buffer.buffer_start = file->position - remaining_bytes_read;
+        file->read_buffer.buffer_valid = (size_t)remaining_bytes_read;
+        memcpy(file->read_buffer.buffer, buffer, (size_t)remaining_bytes_read);
+        debug_print("Updated read buffer with %llu bytes at offset %llu", 
+                   (unsigned long long)remaining_bytes_read, 
+                   (unsigned long long)file->read_buffer.buffer_start);
+    }
+    
+    debug_print("Successfully read %zu bytes total", *bytes_read);
     return UDFS_OK;
 }
 
@@ -792,6 +1085,12 @@ udfs_result_t udfs_seek_file(udfs_file_t *file, uint64_t offset) {
     
     if (!file->volume || !file->volume->is_mounted) {
         return UDFS_ERROR_NOT_MOUNTED;
+    }
+    
+    /* Invalidate read buffer if seeking to a different position */
+    if (file->read_buffer.enabled && offset != file->position) {
+        file->read_buffer.buffer_valid = 0;
+        debug_print("Invalidated read buffer due to seek");
     }
     
     /* Allow seeking beyond EOF (POSIX behavior) */
@@ -955,4 +1254,272 @@ bool udfs_exists(udfs_volume_t *volume, const char *path) {
     
     node = find_node_by_path(volume, path);
     return (node != NULL);
+}
+
+/*
+ * Extended Attributes Operations (Phase 3)
+ */
+
+udfs_result_t udfs_list_extended_attributes(udfs_file_t *file, udfs_ea_info_t *ea_list, 
+                                           size_t max_count, size_t *actual_count) {
+    uint8_t *ea_space, *current_ea, *ea_end;
+    uint32_t ea_length;
+    size_t count = 0;
+    udfs_ea_info_t ea_info;
+    
+    if (!file || !ea_list || !actual_count || max_count == 0) {
+        return UDFS_ERROR_INVALID_PARAM;
+    }
+    
+    if (!file->volume || !file->volume->is_mounted || !file->node) {
+        return UDFS_ERROR_NOT_MOUNTED;
+    }
+    
+    *actual_count = 0;
+    
+    /* Get extended attributes space */
+    ea_space = get_extended_attributes(file->node, &ea_length);
+    if (!ea_space || ea_length == 0) {
+        debug_print("No extended attributes found");
+        return UDFS_OK; /* No extended attributes is not an error */
+    }
+    
+    current_ea = ea_space;
+    ea_end = ea_space + ea_length;
+    
+    /* Parse all extended attributes */
+    while (current_ea && count < max_count) {
+        current_ea = parse_next_ea(current_ea, ea_end, &ea_info);
+        if (!current_ea) {
+            break; /* No more EAs or parse error */
+        }
+        
+        /* Copy EA info to output array */
+        ea_list[count] = ea_info;
+        count++;
+    }
+    
+    *actual_count = count;
+    debug_print("Found %zu extended attributes", count);
+    
+    return UDFS_OK;
+}
+
+udfs_result_t udfs_read_extended_attribute(udfs_file_t *file, udfs_ea_type_t ea_type,
+                                          void *buffer, size_t buffer_size, size_t *data_size) {
+    uint8_t *ea_space, *current_ea, *ea_end;
+    uint32_t ea_length;
+    udfs_ea_info_t ea_info;
+    EAGenericHead *ea_head;
+    
+    if (!file || !buffer || !data_size || buffer_size == 0) {
+        return UDFS_ERROR_INVALID_PARAM;
+    }
+    
+    if (!file->volume || !file->volume->is_mounted || !file->node) {
+        return UDFS_ERROR_NOT_MOUNTED;
+    }
+    
+    *data_size = 0;
+    
+    /* Get extended attributes space */
+    ea_space = get_extended_attributes(file->node, &ea_length);
+    if (!ea_space || ea_length == 0) {
+        debug_print("No extended attributes found");
+        return UDFS_ERROR_NOT_FOUND;
+    }
+    
+    current_ea = ea_space;
+    ea_end = ea_space + ea_length;
+    
+    /* Search for the requested EA type */
+    while (current_ea) {
+        uint8_t *next_ea = parse_next_ea(current_ea, ea_end, &ea_info);
+        if (!next_ea) {
+            break; /* No more EAs or parse error */
+        }
+        
+        if (ea_info.type == ea_type) {
+            /* Found the requested EA */
+            ea_head = (EAGenericHead*)current_ea;
+            
+            /* Calculate data size (total EA size minus header) */
+            size_t data_length = ea_head->attributeLength - sizeof(EAGenericHead);
+            *data_size = data_length;
+            
+            /* Check if buffer is large enough */
+            if (buffer_size < data_length) {
+                debug_print("Buffer too small for EA data: need %zu, have %zu", 
+                           data_length, buffer_size);
+                return UDFS_ERROR_INVALID_PARAM;
+            }
+            
+            /* Copy EA data (excluding header) */
+            if (data_length > 0) {
+                memcpy(buffer, current_ea + sizeof(EAGenericHead), data_length);
+            }
+            
+            debug_print("Read EA data: type=%d, size=%zu", ea_type, data_length);
+            return UDFS_OK;
+        }
+        
+        current_ea = next_ea;
+    }
+    
+    debug_print("Extended attribute type %d not found", ea_type);
+    return UDFS_ERROR_NOT_FOUND;
+}
+
+udfs_result_t udfs_get_extended_attribute_info(udfs_file_t *file, udfs_ea_type_t ea_type,
+                                              udfs_ea_info_t *ea_info) {
+    uint8_t *ea_space, *current_ea, *ea_end;
+    uint32_t ea_length;
+    udfs_ea_info_t current_ea_info;
+    
+    if (!file || !ea_info) {
+        return UDFS_ERROR_INVALID_PARAM;
+    }
+    
+    if (!file->volume || !file->volume->is_mounted || !file->node) {
+        return UDFS_ERROR_NOT_MOUNTED;
+    }
+    
+    /* Initialize output */
+    memset(ea_info, 0, sizeof(udfs_ea_info_t));
+    ea_info->type = ea_type;
+    strncpy(ea_info->name, get_ea_name(ea_type), sizeof(ea_info->name) - 1);
+    ea_info->name[sizeof(ea_info->name) - 1] = '\0';
+    ea_info->available = false;
+    
+    /* Get extended attributes space */
+    ea_space = get_extended_attributes(file->node, &ea_length);
+    if (!ea_space || ea_length == 0) {
+        debug_print("No extended attributes found");
+        return UDFS_OK; /* Return info with available=false */
+    }
+    
+    current_ea = ea_space;
+    ea_end = ea_space + ea_length;
+    
+    /* Search for the requested EA type */
+    while (current_ea) {
+        current_ea = parse_next_ea(current_ea, ea_end, &current_ea_info);
+        if (!current_ea) {
+            break; /* No more EAs or parse error */
+        }
+        
+        if (current_ea_info.type == ea_type) {
+            /* Found the requested EA */
+            *ea_info = current_ea_info;
+            debug_print("Found EA info: type=%d, length=%u, available=true", 
+                       ea_type, ea_info->length);
+            return UDFS_OK;
+        }
+    }
+    
+    debug_print("Extended attribute type %d not found", ea_type);
+    return UDFS_OK; /* Return info with available=false */
+}
+
+/*
+ * Multi-Session Support (Phase 3)
+ */
+
+udfs_result_t udfs_get_session_count(udfs_volume_t *volume, uint32_t *session_count) {
+    if (!volume || !session_count) {
+        return UDFS_ERROR_INVALID_PARAM;
+    }
+    
+    if (!volume->is_mounted || !volume->device) {
+        return UDFS_ERROR_NOT_MOUNTED;
+    }
+    
+    *session_count = volume->device->mediumInfo.numberOfSessions;
+    debug_print("Volume has %u sessions", *session_count);
+    
+    return UDFS_OK;
+}
+
+udfs_result_t udfs_get_session_info(udfs_volume_t *volume, uint32_t session_index,
+                                   udfs_session_info_t *session_info) {
+    uint32_t session_count;
+    uint32_t start_block, next_start_block;
+    
+    if (!volume || !session_info) {
+        return UDFS_ERROR_INVALID_PARAM;
+    }
+    
+    if (!volume->is_mounted || !volume->device) {
+        return UDFS_ERROR_NOT_MOUNTED;
+    }
+    
+    session_count = volume->device->mediumInfo.numberOfSessions;
+    if (session_index >= session_count) {
+        debug_print("Session index %u out of range (0-%u)", session_index, session_count - 1);
+        return UDFS_ERROR_INVALID_PARAM;
+    }
+    
+    if (!volume->device->mediumInfo.sessionStartBlocks) {
+        debug_print("No session start blocks available");
+        return UDFS_ERROR_NOT_SUPPORTED;
+    }
+    
+    /* Get session information */
+    start_block = volume->device->mediumInfo.sessionStartBlocks[session_index];
+    
+    /* Calculate session size */
+    if (session_index + 1 < session_count) {
+        next_start_block = volume->device->mediumInfo.sessionStartBlocks[session_index + 1];
+    } else {
+        /* Last session goes to end of medium */
+        next_start_block = volume->device->mediumInfo.lastValidBlockNr + 1;
+    }
+    
+    /* Fill session info */
+    session_info->session_number = session_index;
+    session_info->start_block = start_block;
+    session_info->total_blocks = next_start_block - start_block;
+    session_info->is_verify_session = (session_index == volume->device->mediumInfo.verifySession);
+    
+    debug_print("Session %u: start=%u, blocks=%u, verify=%s", 
+                session_index, start_block, session_info->total_blocks,
+                session_info->is_verify_session ? "yes" : "no");
+    
+    return UDFS_OK;
+}
+
+udfs_result_t udfs_list_sessions(udfs_volume_t *volume, udfs_session_info_t *session_list,
+                                size_t max_sessions, size_t *actual_sessions) {
+    uint32_t session_count;
+    size_t i;
+    udfs_result_t result;
+    
+    if (!volume || !session_list || !actual_sessions || max_sessions == 0) {
+        return UDFS_ERROR_INVALID_PARAM;
+    }
+    
+    if (!volume->is_mounted || !volume->device) {
+        return UDFS_ERROR_NOT_MOUNTED;
+    }
+    
+    /* Get session count */
+    result = udfs_get_session_count(volume, &session_count);
+    if (result != UDFS_OK) {
+        return result;
+    }
+    
+    /* Fill session list */
+    *actual_sessions = MIN(session_count, max_sessions);
+    
+    for (i = 0; i < *actual_sessions; i++) {
+        result = udfs_get_session_info(volume, (uint32_t)i, &session_list[i]);
+        if (result != UDFS_OK) {
+            debug_print("Failed to get info for session %zu", i);
+            *actual_sessions = i; /* Return partial list */
+            return result;
+        }
+    }
+    
+    debug_print("Listed %zu of %u sessions", *actual_sessions, session_count);
+    return UDFS_OK;
 }

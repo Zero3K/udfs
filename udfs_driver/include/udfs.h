@@ -45,6 +45,24 @@ typedef enum {
     UDFS_TYPE_SYMLINK = 3
 } udfs_file_type_t;
 
+/* Extended attribute types */
+typedef enum {
+    UDFS_EA_CHARSET_INFO = 1,
+    UDFS_EA_FILE_TIMES = 5,
+    UDFS_EA_INFO_TIMES = 6,
+    UDFS_EA_DEVICE_SPEC = 12,
+    UDFS_EA_IMPL_USE = 2048,
+    UDFS_EA_APP_USE = 65536
+} udfs_ea_type_t;
+
+/* Extended attribute information */
+typedef struct {
+    udfs_ea_type_t type;           /* Extended attribute type */
+    uint32_t length;               /* Length of attribute data */
+    char name[64];                 /* Human-readable name */
+    bool available;                /* True if this EA is present */
+} udfs_ea_info_t;
+
 /* File information structure */
 typedef struct {
     char name[256];                /* File/directory name */
@@ -133,6 +151,45 @@ udfs_result_t udfs_stat(udfs_volume_t *volume, const char *path, udfs_file_info_
 
 /* Check if a path exists */
 bool udfs_exists(udfs_volume_t *volume, const char *path);
+
+/*
+ * Extended Attributes Operations (Phase 3)
+ */
+
+/* Get list of available extended attributes for a file */
+udfs_result_t udfs_list_extended_attributes(udfs_file_t *file, udfs_ea_info_t *ea_list, 
+                                           size_t max_count, size_t *actual_count);
+
+/* Read extended attribute data */
+udfs_result_t udfs_read_extended_attribute(udfs_file_t *file, udfs_ea_type_t ea_type,
+                                          void *buffer, size_t buffer_size, size_t *data_size);
+
+/* Get extended attribute info by type */
+udfs_result_t udfs_get_extended_attribute_info(udfs_file_t *file, udfs_ea_type_t ea_type,
+                                              udfs_ea_info_t *ea_info);
+
+/*
+ * Multi-Session Support (Phase 3)
+ */
+
+/* Session information structure */
+typedef struct {
+    uint32_t session_number;       /* Session number (0-based) */
+    uint32_t start_block;          /* First block of session */
+    uint32_t total_blocks;         /* Total blocks in session */
+    bool is_verify_session;        /* True if this is the verify session */
+} udfs_session_info_t;
+
+/* Get number of sessions on the volume */
+udfs_result_t udfs_get_session_count(udfs_volume_t *volume, uint32_t *session_count);
+
+/* Get information about a specific session */
+udfs_result_t udfs_get_session_info(udfs_volume_t *volume, uint32_t session_index,
+                                   udfs_session_info_t *session_info);
+
+/* Get information about all sessions */
+udfs_result_t udfs_list_sessions(udfs_volume_t *volume, udfs_session_info_t *session_list,
+                                size_t max_sessions, size_t *actual_sessions);
 
 /*
  * Utility Functions

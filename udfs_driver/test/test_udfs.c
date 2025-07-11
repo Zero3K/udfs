@@ -201,6 +201,145 @@ void test_file_operations(void) {
     PASS();
 }
 
+void test_extended_attributes(void) {
+    TEST("extended attributes with invalid parameters");
+    udfs_file_t *file = NULL;
+    udfs_ea_info_t ea_list[10];
+    udfs_ea_info_t ea_info;
+    size_t count;
+    size_t data_size;
+    char buffer[256];
+    udfs_result_t result;
+    
+    /* Test list_extended_attributes with NULL parameters */
+    result = udfs_list_extended_attributes(NULL, ea_list, 10, &count);
+    if (result != UDFS_ERROR_INVALID_PARAM) {
+        FAIL("list_extended_attributes should fail with NULL file");
+        return;
+    }
+    
+    result = udfs_list_extended_attributes(file, NULL, 10, &count);
+    if (result != UDFS_ERROR_INVALID_PARAM) {
+        FAIL("list_extended_attributes should fail with NULL ea_list");
+        return;
+    }
+    
+    result = udfs_list_extended_attributes(file, ea_list, 10, NULL);
+    if (result != UDFS_ERROR_INVALID_PARAM) {
+        FAIL("list_extended_attributes should fail with NULL count");
+        return;
+    }
+    
+    result = udfs_list_extended_attributes(file, ea_list, 0, &count);
+    if (result != UDFS_ERROR_INVALID_PARAM) {
+        FAIL("list_extended_attributes should fail with zero max_count");
+        return;
+    }
+    
+    /* Test read_extended_attribute with NULL parameters */
+    result = udfs_read_extended_attribute(NULL, UDFS_EA_FILE_TIMES, buffer, sizeof(buffer), &data_size);
+    if (result != UDFS_ERROR_INVALID_PARAM) {
+        FAIL("read_extended_attribute should fail with NULL file");
+        return;
+    }
+    
+    result = udfs_read_extended_attribute(file, UDFS_EA_FILE_TIMES, NULL, sizeof(buffer), &data_size);
+    if (result != UDFS_ERROR_INVALID_PARAM) {
+        FAIL("read_extended_attribute should fail with NULL buffer");
+        return;
+    }
+    
+    result = udfs_read_extended_attribute(file, UDFS_EA_FILE_TIMES, buffer, sizeof(buffer), NULL);
+    if (result != UDFS_ERROR_INVALID_PARAM) {
+        FAIL("read_extended_attribute should fail with NULL data_size");
+        return;
+    }
+    
+    result = udfs_read_extended_attribute(file, UDFS_EA_FILE_TIMES, buffer, 0, &data_size);
+    if (result != UDFS_ERROR_INVALID_PARAM) {
+        FAIL("read_extended_attribute should fail with zero buffer_size");
+        return;
+    }
+    
+    /* Test get_extended_attribute_info with NULL parameters */
+    result = udfs_get_extended_attribute_info(NULL, UDFS_EA_FILE_TIMES, &ea_info);
+    if (result != UDFS_ERROR_INVALID_PARAM) {
+        FAIL("get_extended_attribute_info should fail with NULL file");
+        return;
+    }
+    
+    result = udfs_get_extended_attribute_info(file, UDFS_EA_FILE_TIMES, NULL);
+    if (result != UDFS_ERROR_INVALID_PARAM) {
+        FAIL("get_extended_attribute_info should fail with NULL ea_info");
+        return;
+    }
+    
+    PASS();
+}
+
+void test_multisession_operations(void) {
+    TEST("multi-session operations with invalid parameters");
+    udfs_volume_t *volume = NULL;
+    udfs_session_info_t session_info;
+    udfs_session_info_t session_list[10];
+    uint32_t session_count;
+    size_t actual_sessions;
+    udfs_result_t result;
+    
+    /* Test get_session_count with NULL parameters */
+    result = udfs_get_session_count(NULL, &session_count);
+    if (result != UDFS_ERROR_INVALID_PARAM) {
+        FAIL("get_session_count should fail with NULL volume");
+        return;
+    }
+    
+    result = udfs_get_session_count(volume, NULL);
+    if (result != UDFS_ERROR_INVALID_PARAM) {
+        FAIL("get_session_count should fail with NULL session_count");
+        return;
+    }
+    
+    /* Test get_session_info with NULL parameters */
+    result = udfs_get_session_info(NULL, 0, &session_info);
+    if (result != UDFS_ERROR_INVALID_PARAM) {
+        FAIL("get_session_info should fail with NULL volume");
+        return;
+    }
+    
+    result = udfs_get_session_info(volume, 0, NULL);
+    if (result != UDFS_ERROR_INVALID_PARAM) {
+        FAIL("get_session_info should fail with NULL session_info");
+        return;
+    }
+    
+    /* Test list_sessions with NULL parameters */
+    result = udfs_list_sessions(NULL, session_list, 10, &actual_sessions);
+    if (result != UDFS_ERROR_INVALID_PARAM) {
+        FAIL("list_sessions should fail with NULL volume");
+        return;
+    }
+    
+    result = udfs_list_sessions(volume, NULL, 10, &actual_sessions);
+    if (result != UDFS_ERROR_INVALID_PARAM) {
+        FAIL("list_sessions should fail with NULL session_list");
+        return;
+    }
+    
+    result = udfs_list_sessions(volume, session_list, 10, NULL);
+    if (result != UDFS_ERROR_INVALID_PARAM) {
+        FAIL("list_sessions should fail with NULL actual_sessions");
+        return;
+    }
+    
+    result = udfs_list_sessions(volume, session_list, 0, &actual_sessions);
+    if (result != UDFS_ERROR_INVALID_PARAM) {
+        FAIL("list_sessions should fail with zero max_sessions");
+        return;
+    }
+    
+    PASS();
+}
+
 void test_directory_operations(void) {
     TEST("directory operations with invalid parameters");
     udfs_volume_t *volume = NULL;
@@ -269,6 +408,8 @@ int main(int argc, char *argv[]) {
     test_debug_toggle();
     test_path_operations();
     test_file_operations();
+    test_extended_attributes();
+    test_multisession_operations();
     test_directory_operations();
     
     /* If a UDF image is provided, test mounting it */
@@ -307,6 +448,39 @@ int main(int argc, char *argv[]) {
             if (result == UDFS_OK) {
                 printf("PASS\n");
                 tests_passed++;
+                
+                /* Test session information - Phase 3 feature */
+                TEST("testing session information");
+                uint32_t session_count;
+                result = udfs_get_session_count(volume, &session_count);
+                if (result == UDFS_OK) {
+                    printf("PASS (found %u sessions)\n", session_count);
+                    tests_passed++;
+                    
+                    if (session_count > 0) {
+                        TEST("testing session details");
+                        udfs_session_info_t session_list[10];
+                        size_t actual_sessions;
+                        result = udfs_list_sessions(volume, session_list, 10, &actual_sessions);
+                        if (result == UDFS_OK) {
+                            printf("PASS (listed %zu sessions)\n", actual_sessions);
+                            tests_passed++;
+                            
+                            /* Display session information */
+                            for (size_t i = 0; i < actual_sessions; i++) {
+                                printf("  Session %u: start_block=%u, total_blocks=%u, verify=%s\n",
+                                       session_list[i].session_number,
+                                       session_list[i].start_block,
+                                       session_list[i].total_blocks,
+                                       session_list[i].is_verify_session ? "yes" : "no");
+                            }
+                        } else {
+                            printf("SKIP (%s)\n", udfs_strerror(result));
+                        }
+                    }
+                } else {
+                    printf("SKIP (%s)\n", udfs_strerror(result));
+                }
                 
                 /* Test path operations */
                 TEST("testing root directory stat");
@@ -373,6 +547,45 @@ int main(int argc, char *argv[]) {
                                 if (result == UDFS_OK) {
                                     printf("PASS (read %zu bytes)\n", bytes_read);
                                     tests_passed++;
+                                } else {
+                                    printf("SKIP (%s)\n", udfs_strerror(result));
+                                }
+                                
+                                /* Test extended attributes - Phase 3 feature */
+                                TEST("testing extended attributes");
+                                udfs_ea_info_t ea_list[10];
+                                size_t ea_count;
+                                result = udfs_list_extended_attributes(file, ea_list, 10, &ea_count);
+                                if (result == UDFS_OK) {
+                                    if (ea_count > 0) {
+                                        printf("PASS (found %zu extended attributes)\n", ea_count);
+                                        tests_passed++;
+                                        
+                                        /* List the extended attributes */
+                                        for (size_t i = 0; i < ea_count; i++) {
+                                            printf("  EA %zu: %s (type=%d, length=%u, available=%s)\n",
+                                                   i, ea_list[i].name, ea_list[i].type, 
+                                                   ea_list[i].length, ea_list[i].available ? "yes" : "no");
+                                            
+                                            /* Try to read the first EA */
+                                            if (i == 0) {
+                                                TEST("reading first extended attribute");
+                                                char ea_buffer[512];
+                                                size_t ea_data_size;
+                                                result = udfs_read_extended_attribute(file, ea_list[i].type, 
+                                                                                    ea_buffer, sizeof(ea_buffer), &ea_data_size);
+                                                if (result == UDFS_OK) {
+                                                    printf("PASS (read %zu bytes of EA data)\n", ea_data_size);
+                                                    tests_passed++;
+                                                } else {
+                                                    printf("SKIP (%s)\n", udfs_strerror(result));
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        printf("PASS (no extended attributes found)\n");
+                                        tests_passed++;
+                                    }
                                 } else {
                                     printf("SKIP (%s)\n", udfs_strerror(result));
                                 }
