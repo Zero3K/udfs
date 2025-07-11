@@ -277,6 +277,69 @@ void test_extended_attributes(void) {
     PASS();
 }
 
+void test_multisession_operations(void) {
+    TEST("multi-session operations with invalid parameters");
+    udfs_volume_t *volume = NULL;
+    udfs_session_info_t session_info;
+    udfs_session_info_t session_list[10];
+    uint32_t session_count;
+    size_t actual_sessions;
+    udfs_result_t result;
+    
+    /* Test get_session_count with NULL parameters */
+    result = udfs_get_session_count(NULL, &session_count);
+    if (result != UDFS_ERROR_INVALID_PARAM) {
+        FAIL("get_session_count should fail with NULL volume");
+        return;
+    }
+    
+    result = udfs_get_session_count(volume, NULL);
+    if (result != UDFS_ERROR_INVALID_PARAM) {
+        FAIL("get_session_count should fail with NULL session_count");
+        return;
+    }
+    
+    /* Test get_session_info with NULL parameters */
+    result = udfs_get_session_info(NULL, 0, &session_info);
+    if (result != UDFS_ERROR_INVALID_PARAM) {
+        FAIL("get_session_info should fail with NULL volume");
+        return;
+    }
+    
+    result = udfs_get_session_info(volume, 0, NULL);
+    if (result != UDFS_ERROR_INVALID_PARAM) {
+        FAIL("get_session_info should fail with NULL session_info");
+        return;
+    }
+    
+    /* Test list_sessions with NULL parameters */
+    result = udfs_list_sessions(NULL, session_list, 10, &actual_sessions);
+    if (result != UDFS_ERROR_INVALID_PARAM) {
+        FAIL("list_sessions should fail with NULL volume");
+        return;
+    }
+    
+    result = udfs_list_sessions(volume, NULL, 10, &actual_sessions);
+    if (result != UDFS_ERROR_INVALID_PARAM) {
+        FAIL("list_sessions should fail with NULL session_list");
+        return;
+    }
+    
+    result = udfs_list_sessions(volume, session_list, 10, NULL);
+    if (result != UDFS_ERROR_INVALID_PARAM) {
+        FAIL("list_sessions should fail with NULL actual_sessions");
+        return;
+    }
+    
+    result = udfs_list_sessions(volume, session_list, 0, &actual_sessions);
+    if (result != UDFS_ERROR_INVALID_PARAM) {
+        FAIL("list_sessions should fail with zero max_sessions");
+        return;
+    }
+    
+    PASS();
+}
+
 void test_directory_operations(void) {
     TEST("directory operations with invalid parameters");
     udfs_volume_t *volume = NULL;
@@ -346,6 +409,7 @@ int main(int argc, char *argv[]) {
     test_path_operations();
     test_file_operations();
     test_extended_attributes();
+    test_multisession_operations();
     test_directory_operations();
     
     /* If a UDF image is provided, test mounting it */
@@ -384,6 +448,39 @@ int main(int argc, char *argv[]) {
             if (result == UDFS_OK) {
                 printf("PASS\n");
                 tests_passed++;
+                
+                /* Test session information - Phase 3 feature */
+                TEST("testing session information");
+                uint32_t session_count;
+                result = udfs_get_session_count(volume, &session_count);
+                if (result == UDFS_OK) {
+                    printf("PASS (found %u sessions)\n", session_count);
+                    tests_passed++;
+                    
+                    if (session_count > 0) {
+                        TEST("testing session details");
+                        udfs_session_info_t session_list[10];
+                        size_t actual_sessions;
+                        result = udfs_list_sessions(volume, session_list, 10, &actual_sessions);
+                        if (result == UDFS_OK) {
+                            printf("PASS (listed %zu sessions)\n", actual_sessions);
+                            tests_passed++;
+                            
+                            /* Display session information */
+                            for (size_t i = 0; i < actual_sessions; i++) {
+                                printf("  Session %u: start_block=%u, total_blocks=%u, verify=%s\n",
+                                       session_list[i].session_number,
+                                       session_list[i].start_block,
+                                       session_list[i].total_blocks,
+                                       session_list[i].is_verify_session ? "yes" : "no");
+                            }
+                        } else {
+                            printf("SKIP (%s)\n", udfs_strerror(result));
+                        }
+                    }
+                } else {
+                    printf("SKIP (%s)\n", udfs_strerror(result));
+                }
                 
                 /* Test path operations */
                 TEST("testing root directory stat");

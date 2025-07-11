@@ -169,6 +169,29 @@ udfs_result_t udfs_get_extended_attribute_info(udfs_file_t *file, udfs_ea_type_t
                                               udfs_ea_info_t *ea_info);
 
 /*
+ * Multi-Session Support (Phase 3)
+ */
+
+/* Session information structure */
+typedef struct {
+    uint32_t session_number;       /* Session number (0-based) */
+    uint32_t start_block;          /* First block of session */
+    uint32_t total_blocks;         /* Total blocks in session */
+    bool is_verify_session;        /* True if this is the verify session */
+} udfs_session_info_t;
+
+/* Get number of sessions on the volume */
+udfs_result_t udfs_get_session_count(udfs_volume_t *volume, uint32_t *session_count);
+
+/* Get information about a specific session */
+udfs_result_t udfs_get_session_info(udfs_volume_t *volume, uint32_t session_index,
+                                   udfs_session_info_t *session_info);
+
+/* Get information about all sessions */
+udfs_result_t udfs_list_sessions(udfs_volume_t *volume, udfs_session_info_t *session_list,
+                                size_t max_sessions, size_t *actual_sessions);
+
+/*
  * Utility Functions
  */
 

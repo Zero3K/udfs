@@ -200,7 +200,10 @@ static Device* create_image_device(const char *image_path) {
     device->readBlock = simpleImageReadBlocks;
     device->closeAndFreeImpUse = simpleImageCloseAndFreeImpUse;
     
-    /* Initialize medium info */
+    /* Initialize medium info with basic single session setup
+     * Multi-session detection can be enhanced later by reading the
+     * Volume Recognition Sequence and Anchor Volume Descriptor Pointers
+     */
     clearMediumInfo(&device->mediumInfo);
     device->mediumInfo.blockSize = imageImpUse->block_size;
     device->mediumInfo.lastValidBlockNr = (Uint32)((file_size / imageImpUse->block_size) - 1);
@@ -208,12 +211,21 @@ static Device* create_image_device(const char *image_path) {
     device->mediumInfo.writabilityType = MTYPE_WR_UNKNOWN;
     device->mediumInfo.sequentialType = MTYPE_SE_UNKNOWN; 
     device->mediumInfo.closedType = MTYPE_CL_UNKNOWN;
-    device->mediumInfo.numberOfSessions = 1;
+    device->mediumInfo.numberOfSessions = 0;  /* Will be set by addSessionToMediumInfo */
     device->mediumInfo.sessionStartBlocks = NULL;  /* Will be allocated by addSessionToMediumInfo */
-    device->mediumInfo.verifySession = 1;
+    device->mediumInfo.verifySession = 0;  /* Use first session as verify session */
     
-    /* Add session 0 starting at block 0 */
+    /* Add session 0 starting at block 0 (basic single-session setup)
+     * In a more advanced implementation, we would scan for multiple sessions
+     * by looking for multiple Anchor Volume Descriptor Pointers
+     */
     addSessionToMediumInfo(&device->mediumInfo, 0);
+    
+    /* TODO: Enhanced multi-session detection could be added here by:
+     * 1. Scanning for Anchor Volume Descriptor Pointers at standard locations
+     * 2. Detecting different UDF revisions in different sessions
+     * 3. Supporting incremental UDF media (like DVD+RW with multiple writes)
+     */
     
     debug_print("Created image device: %llu bytes, %u blocks", 
                 (unsigned long long)file_size, device->mediumInfo.lastValidBlockNr + 1);
@@ -1230,4 +1242,107 @@ udfs_result_t udfs_get_extended_attribute_info(udfs_file_t *file, udfs_ea_type_t
     
     debug_print("Extended attribute type %d not found", ea_type);
     return UDFS_OK; /* Return info with available=false */
+}
+
+/*
+ * Multi-Session Support (Phase 3)
+ */
+
+udfs_result_t udfs_get_session_count(udfs_volume_t *volume, uint32_t *session_count) {
+    if (!volume || !session_count) {
+        return UDFS_ERROR_INVALID_PARAM;
+    }
+    
+    if (!volume->is_mounted || !volume->device) {
+        return UDFS_ERROR_NOT_MOUNTED;
+    }
+    
+    *session_count = volume->device->mediumInfo.numberOfSessions;
+    debug_print("Volume has %u sessions", *session_count);
+    
+    return UDFS_OK;
+}
+
+udfs_result_t udfs_get_session_info(udfs_volume_t *volume, uint32_t session_index,
+                                   udfs_session_info_t *session_info) {
+    uint32_t session_count;
+    uint32_t start_block, next_start_block;
+    
+    if (!volume || !session_info) {
+        return UDFS_ERROR_INVALID_PARAM;
+    }
+    
+    if (!volume->is_mounted || !volume->device) {
+        return UDFS_ERROR_NOT_MOUNTED;
+    }
+    
+    session_count = volume->device->mediumInfo.numberOfSessions;
+    if (session_index >= session_count) {
+        debug_print("Session index %u out of range (0-%u)", session_index, session_count - 1);
+        return UDFS_ERROR_INVALID_PARAM;
+    }
+    
+    if (!volume->device->mediumInfo.sessionStartBlocks) {
+        debug_print("No session start blocks available");
+        return UDFS_ERROR_NOT_SUPPORTED;
+    }
+    
+    /* Get session information */
+    start_block = volume->device->mediumInfo.sessionStartBlocks[session_index];
+    
+    /* Calculate session size */
+    if (session_index + 1 < session_count) {
+        next_start_block = volume->device->mediumInfo.sessionStartBlocks[session_index + 1];
+    } else {
+        /* Last session goes to end of medium */
+        next_start_block = volume->device->mediumInfo.lastValidBlockNr + 1;
+    }
+    
+    /* Fill session info */
+    session_info->session_number = session_index;
+    session_info->start_block = start_block;
+    session_info->total_blocks = next_start_block - start_block;
+    session_info->is_verify_session = (session_index == volume->device->mediumInfo.verifySession);
+    
+    debug_print("Session %u: start=%u, blocks=%u, verify=%s", 
+                session_index, start_block, session_info->total_blocks,
+                session_info->is_verify_session ? "yes" : "no");
+    
+    return UDFS_OK;
+}
+
+udfs_result_t udfs_list_sessions(udfs_volume_t *volume, udfs_session_info_t *session_list,
+                                size_t max_sessions, size_t *actual_sessions) {
+    uint32_t session_count;
+    size_t i;
+    udfs_result_t result;
+    
+    if (!volume || !session_list || !actual_sessions || max_sessions == 0) {
+        return UDFS_ERROR_INVALID_PARAM;
+    }
+    
+    if (!volume->is_mounted || !volume->device) {
+        return UDFS_ERROR_NOT_MOUNTED;
+    }
+    
+    /* Get session count */
+    result = udfs_get_session_count(volume, &session_count);
+    if (result != UDFS_OK) {
+        return result;
+    }
+    
+    /* Fill session list */
+    *actual_sessions = MIN(session_count, max_sessions);
+    
+    for (i = 0; i < *actual_sessions; i++) {
+        result = udfs_get_session_info(volume, (uint32_t)i, &session_list[i]);
+        if (result != UDFS_OK) {
+            debug_print("Failed to get info for session %zu", i);
+            *actual_sessions = i; /* Return partial list */
+            return result;
+        }
+    }
+    
+    debug_print("Listed %zu of %u sessions", *actual_sessions, session_count);
+    return UDFS_OK;
 }
