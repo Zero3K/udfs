@@ -11,6 +11,10 @@
 #include <time.h>
 #include <stdio.h>
 
+#ifndef MIN
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#endif
+
 /* Internal structure for mounted volume */
 struct udfs_volume {
     Device *device;
@@ -363,6 +367,7 @@ static udfs_file_type_t convert_file_type(uint8_t udf_type) {
 /* Find a node by path from root 
  * Returns the node if found, NULL if not found
  * Supports both absolute paths (starting with /) and relative paths
+ * Uses proper Unicode filename handling (Phase 3)
  */
 static Node* find_node_by_path(udfs_volume_t *volume, const char *path) {
     Node *current_node;
@@ -406,23 +411,14 @@ static Node* find_node_by_path(udfs_volume_t *volume, const char *path) {
         /* Search for this component in current directory */
         found = false;
         for (child = current_node->firstChild; child; child = child->nextInDirectory) {
-            if (child->unicodeName) {
-                /* Convert Unicode name to char for comparison - simplified */
-                char child_name[256];
-                if (child->unicodeNameLen < sizeof(child_name)) {
-                    /* Simple conversion: assume ASCII-compatible Unicode */
-                    for (uint32_t i = 0; i < child->unicodeNameLen && i < sizeof(child_name) - 1; i++) {
-                        child_name[i] = (char)(child->unicodeName[i] & 0xFF);
-                    }
-                    child_name[child->unicodeNameLen] = '\0';
-                    
-                    debug_print("Comparing with child: %s", child_name);
-                    if (strcmp(token, child_name) == 0) {
-                        current_node = child;
-                        found = true;
-                        debug_print("Found matching child: %s", child_name);
-                        break;
-                    }
+            /* Use UDFCT's proper Unicode string comparison function */
+            bool head_matches_result = false;
+            if (stringIsUnicodeName(child, token, (bool*)&head_matches_result)) {
+                if (!head_matches_result) { /* Exact match */
+                    current_node = child;
+                    found = true;
+                    debug_print("Found matching child (Unicode): %s", token);
+                    break;
                 }
             }
         }
@@ -578,17 +574,35 @@ static bool udfs_read_file_data(UdfMountContext *mc, Node *node,
     return true;
 }
 
-/* Fill file info structure from UDFCT Node */
+/* Fill file info structure from UDFCT Node 
+ * Uses proper Unicode to UTF-8 conversion (Phase 3)
+ */
 static void fill_file_info(const Node *node, udfs_file_info_t *info) {
     if (!node || !info) return;
     
     memset(info, 0, sizeof(udfs_file_info_t));
     
-    /* Copy file name */
-    if (node->unicodeName) {
-        /* Convert Unicode name to UTF-8 - simplified */
-        strncpy(info->name, (const char*)node->unicodeName, sizeof(info->name) - 1);
-        info->name[sizeof(info->name) - 1] = '\0';
+    /* Copy file name using proper Unicode conversion */
+    if (node->unicodeName && node->unicodeNameLen > 0) {
+        /* Use UDFCT's Unicode to char conversion function */
+        Byte converted_name[256];
+        if (convertUnicode2Char(node->unicodeName, (Uint8)node->unicodeNameLen, converted_name)) {
+            /* Safely copy the converted name */
+            strncpy(info->name, (const char*)converted_name, sizeof(info->name) - 1);
+            info->name[sizeof(info->name) - 1] = '\0';
+            debug_print("Converted Unicode name: %s (length=%u)", info->name, node->unicodeNameLen);
+        } else {
+            /* Fallback to simplified conversion if UDFCT function fails */
+            size_t copy_len = MIN(node->unicodeNameLen, sizeof(info->name) - 1);
+            for (size_t i = 0; i < copy_len; i++) {
+                info->name[i] = (char)(node->unicodeName[i] & 0xFF);
+            }
+            info->name[copy_len] = '\0';
+            debug_print("Used fallback Unicode conversion: %s", info->name);
+        }
+    } else {
+        strcpy(info->name, "<no name>");
+        debug_print("Node has no Unicode name");
     }
     
     /* Set file type and size */
