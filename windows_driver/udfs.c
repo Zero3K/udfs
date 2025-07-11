@@ -15,6 +15,7 @@ UDFS_DATA UdfsData;
  * Driver entry point
  */
 NTSTATUS
+NTAPI
 DriverEntry(
     IN PDRIVER_OBJECT DriverObject,
     IN PUNICODE_STRING RegistryPath
@@ -84,6 +85,7 @@ DriverEntry(
  * Driver unload routine
  */
 VOID
+NTAPI
 UdfsUnload(
     IN PDRIVER_OBJECT DriverObject
     )
@@ -107,6 +109,7 @@ UdfsUnload(
  * Main dispatch routine
  */
 NTSTATUS
+NTAPI
 UdfsDispatch(
     IN PDEVICE_OBJECT DeviceObject,
     IN PIRP Irp

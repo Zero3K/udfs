@@ -238,17 +238,20 @@ extern UDFS_DATA UdfsData;
 
 /* Main driver entry points (udfs.c) */
 NTSTATUS
+NTAPI
 DriverEntry(
     IN PDRIVER_OBJECT DriverObject,
     IN PUNICODE_STRING RegistryPath
     );
 
 VOID
+NTAPI
 UdfsUnload(
     IN PDRIVER_OBJECT DriverObject
     );
 
 NTSTATUS
+NTAPI
 UdfsDispatch(
     IN PDEVICE_OBJECT DeviceObject,
     IN PIRP Irp
