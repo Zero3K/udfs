@@ -1,0 +1,66 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999, 2000
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+---------------------------------------------------------------------------
+March 7, 2000
+
+Release notes for UDF verifier release 0.7r5
+
+Changes since release 0.7r1
+
+corrections:
+
+- Bug repair for file link count of directories with a streamdirectory.
+
+new tests:
+
+- Streams read implementation ready. All stream directories are
+  expanded and all streams read.
+  Special restrictions for streams not yet verified.
+  In a file name or file path, streams and stream directories
+  are denoted with a double /. like: "filename"//"streamname".
+  <root>//"streamname" is equivalent with ///"streamname" for
+  a named stream attached to the root directory.
+- Partition allocation checks. Space Tables not yet implemented.
+  1) All blocks that are used within a partition and marked as
+     unallocated or freed in the Unallocated or Freed Bitmaps
+     are flagged as errors.
+  2) All blocks of which the verifier could not (yet) find the
+     usage, but that are marked as allocated in the Unallocated
+     and Freed Bitmaps are flagged as warnings.
+     These are no UDF rule violations.
+
+todo list for verifier implementation (incomplete list)
+(at least the head of this list is in priority order)
+
+- verify stream restrictions
+- Space Tables for partition allocation checks
+- File Link Count for non-directory FEs
+- finish FID and FE testing
+- Unallocated Space Descriptor checks
+- symbolic link expansion
+- Timestamps
+- permissions
+- Full UniqueID testing
+- UDF 2.01
+- ...
+
+Please inform me of errors, etc. as soon as possible
+in order to improve the verifier. Also in the case of
+wrong or unclear UDF and ECMA references in messages.
+
+Regards, Gerrit Scholl
+
+          Philips Research, G.J. Scholl
+          Prof. Holstlaan 4, building WL11
+          5656 AA Eindhoven
+          The Netherlands
+
+e-mail:   Gerrit.Scholl@philips.com
+
+___________________________________________________________
+

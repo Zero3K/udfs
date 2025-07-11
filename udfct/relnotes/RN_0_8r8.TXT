@@ -1,0 +1,111 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999-2001
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+---------------------------------------------------------------------------
+September 10, 2001
+
+Release notes for UDF verifier release 0.8r8
+
+Changes since release 0.8r6
+
+- Check overlap of Volume Structures with partition space.
+  If overlap, then check allocation in partition Space Set.
+- Check Non-Allocatable Space.
+- Detect all occurences of multiple allocated blocks inside
+  a partition. Also Volume structures that may overlap with
+  a partition are taken into account.
+- Check number of AVDPs in a later stage after it is clear if
+  a virtual partition is present for better error messages in
+  case of a single AVDP.
+- Complete Dstring and FID identifier tests, handle compression
+  id 254 and 255 for deleted FIDs.
+- Allow ambiguous deleted FID names for UDF 2.01+,
+  but print warning for UDF 2.00 and lower.
+- Handle REAL TIME FILE type for UDF 2.01
+- Verife UDf domain identifiers in LVD and FSD.
+- Detect sessions in scsi/atapi support for a CD medium and
+  verify last data session by default.
+- Improved final status report:
+  Shows final medium type, etc.
+  Extra fatal error in case verification could not be completed
+- Improved directory listing: add mark for System, Non-Relocatable
+  and Contiguous bits, remove 'R' for Reserved bits, see -help.
+- Always extract medium type information from file system
+  structures, so ignore that type of information reported
+  by a drive and remove the following medium type command
+  line options: "-readonly -writeonce -rewritable"
+                "-sequential -nonsequential"
+                "-closed -unclosed"
+  get medium type info from:
+    writability type: from partition(s) access type, so also
+                      state "overwritable" is possible.
+     sequential type: presence of a virtual partition
+     closed/unclosed: presence of a single AVDP on 256 or 512,
+                      relevant for sequential only.
+     renamed closed/unclosed to finalized / unfinalized.
+- Added heuristics by checking VAT and AVDP positions near the
+  end of the medium in order to find the correct value of the
+  last valid block number N.
+  Can still be overruled by -lastvalidblock option.
+  This makes the verifier less drive dependent, because
+  sometimes different values for N were reported by different
+  drives for the same medium.
+- changed "- ==> Note: Previous message print..., ignored from now."
+  message to:            "- ==> Message print..., ignored from now."
+  in order to make it easier to trace other notes with a search
+  for "Note:"
+- Low level scsi error logging switched off
+- macos.mpr project file replaced by updated macos.pro5 file.
+
+Corrections:
+
+- The warning for OSes that do not support the notion of
+  Uid/Gid based on ECMA 4/14.9.2+3 is chandged into an error
+  based on the more strict definition of UDF 3.3.3.1+2.
+  OSes that do support the notion of Uid/Gid are the OS
+  Classes 4 and 7 ("UNIX" and "OS/400"), according to UDF 6.3.
+  So there are no Uid/Gid restrictions for these OS Classes,
+  all other OS Classes shall use #FFFFFFFF as Uid/Gid.
+
+Known problems:
+
+- For drives with multiple logical units, only logical unit
+  0 can be accessed.
+- Continuation extents and Strategy 4096 blocks may be
+  flagged as unused blocks.
+
+todo list for verifier implementation (incomplete list)
+(at least the head of this list is in priority order)
+
+- UniqueID testing by cross reference of all FID/FE
+- UniqueID mapping table tests
+- verify last stream restrictions
+- symbolic link expansion
+- finish FID and FE testing
+- finish Volume Structure descriptors
+- Timestamps in Extended Attributes
+- Unallocated Space Descriptor checks
+- Space Table with strategy type 4096
+- permissions
+- finish UDF 2.01 tests
+- ...
+
+Please inform me of errors, etc. as soon as possible
+in order to improve the verifier. Also in the case of
+wrong or unclear UDF and ECMA references in messages.
+
+Regards, Gerrit Scholl
+
+          Philips Research, G.J. Scholl
+          Prof. Holstlaan 4, building WL11
+          5656 AA Eindhoven
+          The Netherlands
+
+e-mail:   Gerrit.Scholl@philips.com
+
+___________________________________________________________
+

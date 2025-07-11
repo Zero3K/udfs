@@ -1,0 +1,68 @@
+# udf_tester/Makefile.uct - Common customizing makefile definitions
+# Included by:	../udf_tester/Makefile
+#		../uct_core/Makefile
+#		../udf_scsi/Makefile
+#
+# UDF verifier udf_test:
+# udf_test will verify UDF from image file or directly from scsi/atapi drive.
+# Tested platforms: WIN32, LINUX, SOLARIS, HP-UX, IRIX 64.
+# NOTE that target generation for WIN32 does not uses these Makefiles
+# Scsi/Atapi drive support is available for:
+#	WIN32   : Win32
+#	LINUX   : Linux
+#	NETBSD  : NetBSD
+#
+# If the approprate platform definitions below are enabled,
+# 'big files' (64 bit file sizes and offsets)
+# are supported by:
+#	WIN32   : Win32
+#	LINUX   : Linux
+#	SOLARIS : Sun Solaris
+#	HPUX    : HP-UX
+#	IRIX64  : SGI Irix
+#	NETBSD  : NetBSD
+#
+# For drives, SCSI access is prefered using the -scsi option.
+# If SCSI/Atapi support is not available, a drive may also be accessed
+# without -scsi option, but this may give unpredictable results for
+# special media types.
+#
+# Compilation possible for many other platforms without PLATFORM
+# definition, but than 'big files' may not be supported.
+#
+# system customizing:
+# enable following definitions if appropriate
+#
+
+## PLATFORM = -DLINUX			# LINUX   : Linux
+## PLATFORM = -DSOLARIS			# SOLARIS : Sun Solaris
+## PLATFORM = -DHPUX			# HPUX    : HP-UX
+## PLATFORM = -DNETBSD			# NETBSD  : NetBSD
+## PLATFORM = -DMACOSX			# MACOSX  : Macintosh OS X
+
+#  - Enable next line for LINUX, SOLARIS, HPUX :
+##  PLATFORM_SZ64FLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D__USE_LARGEFILE64
+
+#  ranlib default definition:
+   PLATFORM_RANLIB = echo ranlib not needed for
+
+#  Enable next two lines for MACOSX:
+## PLATFORM_RANLIB = ranlib
+## PLATFORM_CFLAGS = -arch ppc -arch i386	# build universal binaries
+
+#  Only relevant for platforms with SCSI support, e.g. LINUX:
+#  - disable SCSI support by:
+## SCSI_SUPPORT = -DNO_SCSI
+
+#  Only relevant for platforms with RAW_DEVICE support, e.g. MACOSX:
+#  - disable RAW_DEVICE support by:
+## RAW_SUPPORT = -DNO_RAW_DEVICE
+
+#  Enable next two lines for IRIX64:
+## PLATFORM = -DIRIX64			# IRIX64: SGI Irix 64 bit platform
+## PLATFORM_LIBS = -ldisk		# IRIX64: link libs
+
+## DEBUG = -g
+
+CC = gcc
+

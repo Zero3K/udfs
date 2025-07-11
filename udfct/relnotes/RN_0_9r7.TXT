@@ -1,0 +1,86 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999-2003
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+---------------------------------------------------------------------------
+Januari 16, 2003
+
+Release notes for UDF verifier release 0.9r7
+
+Changes since release 0.9r6
+
+New tests, etc.:
+
+- added FAQ.TXT file and release notes (relnotes) directory
+  to verifier delivery.
+- Test if sizeOfEachSparingTable in Sparable Partition Map
+  allocates enough bytes for actual Sparing Table size.
+- Improve messages for "missing VSR" and "missing NSR".
+- New option -ignoreAVDP256. Ignores AVDP at 256. E.g. for
+  verification of intermediate steps with VAT
+  by: udf_test -ignoreAVDP256 -lastvalidblock <VAT address>.
+
+Corrections:
+
+- Repair: An error message was given for a Sparing Table with a length
+  more than one block. A Sparing Table can be more than one block.
+  This information was missing in the table of UDF section 5.1,
+  which has been reported as an editorial repair of the spec.
+- Added reference to 3.3.4.3.1 for EFE compare of Access, Modification
+  and Attribute (Date and) Time to Creation Time.
+- Changed error to warning for UDF 2.00 or higher with a FSD
+  descriptor Version of 2 and no System Stream Directory defined.
+  This may be a medium that was upgraded from UDF 1.02 or 1.50
+  to UDF 2.00 or higher.
+- Improved error message if VAT FE beyond partion end.
+- No more fixed message limits with values >= 100
+  because the default for -mlimit is 100 now.
+- Ignore Data Mode as reported by the READ TRACK INFORMATION,
+  because some drives do not report this well and Data Mode is in
+  CD recommendations only (e.g. not defined for DVD).
+
+Known problems:
+
+- For drives with multiple logical units, only logical unit
+  0 can be accessed.
+- Strategy 4096 blocks may be flagged as unused blocks.
+- For FE, Access, Modification and Attribute (Date and) Time,
+  do not (yet) compare to File Times EA Creation Time, if any.
+
+todo list for verifier implementation (incomplete list)
+(at least the head of this list is in priority order)
+
+- timeout and timeout option for the time needed to determine
+  the lastvalidblock value (in case of read errors).
+- Unallocated Space Descriptor checks
+- verify last stream restrictions
+- finish Volume Structure descriptors
+- verify if unused VAT entry is #FFFFFFFF (warn or error??)
+- UniqueID mapping table tests
+- symbolic link expansion
+- finish Volume Structure descriptors
+- Timestamps in Extended Attributes
+- Space Table with strategy type 4096
+- permissions
+- finish special UDF 2.01 tests
+- ...
+
+Please inform me of errors, etc. as soon as possible
+in order to improve the verifier. Also in the case of
+wrong or unclear UDF and ECMA references in messages.
+
+Regards, Gerrit Scholl.
+
+         Philips Research
+         G.J. Scholl, WDC 11
+         Prof. Holstlaan 4
+         5656 AA Eindhoven
+         The Netherlands
+
+e-mail:   Gerrit.Scholl@philips.com
+
+___________________________________________________________
+

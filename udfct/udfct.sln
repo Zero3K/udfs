@@ -1,0 +1,36 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.32929.386
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "udf_tester", "udf_tester\udf_tester.vcxproj", "{B8C5C93F-81FE-4F1E-9C43-F02C7DB224AC}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "udf_scsi", "udf_scsi\udf_scsi.vcxproj", "{F339CD64-5D2B-4697-9160-1D7726B9C26D}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uct_core", "uct_core\uct_core.vcxproj", "{77353A94-F827-4A90-8179-20E5BBF325AC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B8C5C93F-81FE-4F1E-9C43-F02C7DB224AC}.Debug|x86.ActiveCfg = Debug|Win32
+		{B8C5C93F-81FE-4F1E-9C43-F02C7DB224AC}.Debug|x86.Build.0 = Debug|Win32
+		{B8C5C93F-81FE-4F1E-9C43-F02C7DB224AC}.Release|x86.ActiveCfg = Release|Win32
+		{B8C5C93F-81FE-4F1E-9C43-F02C7DB224AC}.Release|x86.Build.0 = Release|Win32
+		{F339CD64-5D2B-4697-9160-1D7726B9C26D}.Debug|x86.ActiveCfg = Debug|Win32
+		{F339CD64-5D2B-4697-9160-1D7726B9C26D}.Debug|x86.Build.0 = Debug|Win32
+		{F339CD64-5D2B-4697-9160-1D7726B9C26D}.Release|x86.ActiveCfg = Release|Win32
+		{F339CD64-5D2B-4697-9160-1D7726B9C26D}.Release|x86.Build.0 = Release|Win32
+		{77353A94-F827-4A90-8179-20E5BBF325AC}.Debug|x86.ActiveCfg = Debug|Win32
+		{77353A94-F827-4A90-8179-20E5BBF325AC}.Debug|x86.Build.0 = Debug|Win32
+		{77353A94-F827-4A90-8179-20E5BBF325AC}.Release|x86.ActiveCfg = Release|Win32
+		{77353A94-F827-4A90-8179-20E5BBF325AC}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8025F7C7-E3A7-413A-9437-E74A976A5731}
+	EndGlobalSection
+EndGlobal

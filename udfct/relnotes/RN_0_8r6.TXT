@@ -1,0 +1,60 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999-2001
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+---------------------------------------------------------------------------
+May 30, 2001
+
+Release notes for UDF verifier release 0.8r6
+
+Changes since release 0.8r5
+
+- verify FE/EFE logicalBlocksRecorded
+- complete verify EFE objectSize
+- -write_image and -inspect_image show now all descriptors
+- Linux scsi support checks now devices /dev/sg0 thru /dev/sg128,
+  if none found then also /dev/sga thru /dev/sgz is checked.
+
+Corrections:
+- The EntytyID ImplementationIdentifier field of a non-UDF IUVD
+  as meant by the NOTE in 2.2.7 shall have a Implementation
+  IdentifierSuffix type instead of an Application
+  IdentifierSuffix type.
+- bug repair on big endian machines: non-UDF IUVD endian swap.
+- Windows scsi support does now check all possible scsi IDs
+  for -showscsi and -scsi options.
+
+todo list for verifier implementation (incomplete list)
+(at least the head of this list is in priority order)
+
+- UniqueID testing by cross reference of all FID/FE
+- UniqueID mapping table tests
+- verify last stream restrictions
+- symbolic link expansion
+- finish FID and FE testing
+- finish Volume Structure descriptors
+- Timestamps in Extended Attributes
+- Unallocated Space Descriptor checks
+- Space Table with strategy type 4096
+- permissions
+- finish UDF 2.01 tests
+- ...
+
+Please inform me of errors, etc. as soon as possible
+in order to improve the verifier. Also in the case of
+wrong or unclear UDF and ECMA references in messages.
+
+Regards, Gerrit Scholl
+
+          Philips Research, G.J. Scholl
+          Prof. Holstlaan 4, building WL11
+          5656 AA Eindhoven
+          The Netherlands
+
+e-mail:   Gerrit.Scholl@philips.com
+
+___________________________________________________________
+

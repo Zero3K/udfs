@@ -1,0 +1,76 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999-2006
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+--------------------------------------------------------------------------
+January 15, 2007
+
+Release notes for UDF verifier release 1.5r4
+
+Changes since previous release 1.5r2
+
+New/modified UDF tests:
+
+- ...
+
+Further changes/corrections:
+
+- When comparing Metadata file to its mirror, avoid reading of unused blocks
+  (they could be unrecorded).
+- Far apart calculations:
+  PTP: The capacity of layer L1 can be bigger than for L0. Assume
+       all sectors with address greater than or equal to L0capacity
+       as being on L1.
+       So only Dual Layer and Single layer supported for PTP (SL, DL).
+  OTP: Capacity of all layer assumed to be equal to L0capacity.
+       So OTP support for DL and SL and also preparation for support of
+       Multi-Layer (ML) (if assumption above is true).
+
+Implementation changes/corrections/remarks:
+
+- ...
+TODO: add windows compile explanation to FAQ
+
+Known problems:
+
+- Scsi support only accesses logical unit 0 of a drive.
+- Strategy 4096 blocks may be flagged as unused blocks.
+- For FE, Access, Modification and Attribute Date and Time,
+  no compare (yet) to File Times EA Creation Time, if any.
+
+------------
+
+todo list for verifier implementation:
+(incomplete list)
+
+- double check UDF 2.50 errata tests
+- complete UDF 2.60 testing and test on BD drives
+- no Freed Space Bitmap/Table for access type 4.
+- verify Previous VAT ICB location
+- UniqueID mapping table tests
+- symbolic link expansion
+- Timestamps in Extended Attributes
+- permissions
+- ...
+- check DCNs: 5157, 5163, 5166 ??
+
+
+Please inform me of errors, missing tests, etc. as soon as
+possible in order to improve the verifier. Also in the case
+of wrong or unclear UDF and ECMA references in messages.
+
+Gerrit Scholl.
+
+address:  Philips Research Laboratories
+          G.J. Scholl, HTC31 1.046
+          High Tech Campus 31
+          5656 AE  Eindhoven
+          The Netherlands
+
+e-mail:   Gerrit.Scholl@philips.com
+
+___________________________________________________________
+

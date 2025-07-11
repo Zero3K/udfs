@@ -1,0 +1,65 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{234de47a-34a6-46e7-b58c-c7ab95e5a226}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;rc;def;r;odl;idl;hpj;bat</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{6641cfa1-5127-488e-9742-ad9a1bc6b4cb}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl</Extensions>
+    </Filter>
+    <Filter Include="Local Documentation">
+      <UniqueIdentifier>{fb4249ca-d92b-4012-91fb-9f2a1b136844}</UniqueIdentifier>
+      <Extensions>txt</Extensions>
+    </Filter>
+    <Filter Include="Libs">
+      <UniqueIdentifier>{be979441-2f42-4fd4-9845-6fb8d1ee56de}</UniqueIdentifier>
+      <Extensions>lib;dll;sys</Extensions>
+    </Filter>
+    <Filter Include="Unix">
+      <UniqueIdentifier>{ac487ed9-06e7-424a-bdd9-3df53f501062}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{335acbf1-42cd-4521-b6fd-c4e50701e993}</UniqueIdentifier>
+      <Extensions>ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="scsiapi.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="scsiapi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="scsidefs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="wnaspi32.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="notes.txt">
+      <Filter>Local Documentation</Filter>
+    </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="aspi32.sys">
+      <Filter>Libs</Filter>
+    </None>
+    <None Include="wnaspi32.dll">
+      <Filter>Libs</Filter>
+    </None>
+    <None Include="Makefile">
+      <Filter>Unix</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="wnaspi32.lib">
+      <Filter>Libs</Filter>
+    </Library>
+  </ItemGroup>
+</Project>

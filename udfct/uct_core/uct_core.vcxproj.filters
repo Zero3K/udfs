@@ -1,0 +1,143 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4ed2c020-82a6-43a8-b80f-69abea558e88}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;rc;def;r;odl;idl;hpj;bat</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{1432da01-77dd-45d2-a7c0-44071d4a2b6f}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl</Extensions>
+    </Filter>
+    <Filter Include="Local Documentation">
+      <UniqueIdentifier>{bda72376-b832-4bcd-85f1-f669ac676d92}</UniqueIdentifier>
+      <Extensions>txt</Extensions>
+    </Filter>
+    <Filter Include="Unix">
+      <UniqueIdentifier>{11ba84d4-3f32-4690-a459-6bd5708d5b35}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{ea6a9d3b-5c91-41cf-880b-20e56f99370d}</UniqueIdentifier>
+      <Extensions>ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="crc.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="general.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="uctallocation.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="uctendian.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ucterror.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="uctfarapart.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="uctfiles.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="uctgeneral.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="uctmedium.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="uctnodes.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="uctstatus.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ucttimestamp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="uctverify.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="unicode.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="crc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="device.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="general.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mytypes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="uct_core.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="uctallocation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="uctdata.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="uctendian.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ucterror.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="uctfarapart.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="uctfiles.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="uctgeneral.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="uctmedium.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="uctnodes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="uctstatus.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ucttimestamp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="uctverify.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="uctversion.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="udfstruct.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="unicode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="notes.txt">
+      <Filter>Local Documentation</Filter>
+    </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Makefile">
+      <Filter>Unix</Filter>
+    </None>
+  </ItemGroup>
+</Project>

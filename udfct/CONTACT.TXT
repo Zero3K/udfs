@@ -1,0 +1,21 @@
+===============================================================
+              UDF VERIFICATION SOFTWARE
+
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999-2007
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+===============================================================
+
+Contact Information
+===================
+
+Philips Intellectual Property & Standards
+Business Support
+P.O. Box 220
+5600AA Eindhoven
+The Netherlands
+
+Internet: http://www.ip.philips.com
+  E-mail: info.licensing@philips.com
+

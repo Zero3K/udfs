@@ -1,0 +1,104 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{68f438f7-6a64-4515-bc80-a15326f91223}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;rc;def;r;odl;idl;hpj;bat</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{43210401-2020-41a6-8094-bc1121c2ccb9}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl</Extensions>
+    </Filter>
+    <Filter Include="Local Documentation">
+      <UniqueIdentifier>{2cd7f2d2-2c49-4cef-b1a1-8602d1276b05}</UniqueIdentifier>
+      <Extensions>txt</Extensions>
+    </Filter>
+    <Filter Include="Unix">
+      <UniqueIdentifier>{d38f10dd-99d9-47ac-aef9-377356e94805}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{7f32b08d-4a65-40e6-aa37-6f802556ea3c}</UniqueIdentifier>
+      <Extensions>ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="commandline.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="drive_device.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="img_device.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mfile.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="platform.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="raw_device.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="scsi_device.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="selectdevice.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="udf_test.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="write_image.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="commandline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="drive_device.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="img_device.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mfile.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="platform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="raw_device.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="scsi_device.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="selectdevice.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="version.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="write_image.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="notes.txt">
+      <Filter>Local Documentation</Filter>
+    </Text>
+    <Text Include="todolist.txt">
+      <Filter>Local Documentation</Filter>
+    </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Makefile">
+      <Filter>Unix</Filter>
+    </None>
+    <None Include="Makefile.uct">
+      <Filter>Unix</Filter>
+    </None>
+  </ItemGroup>
+</Project>

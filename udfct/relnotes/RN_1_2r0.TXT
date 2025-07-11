@@ -1,0 +1,109 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999-2005
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+--------------------------------------------------------------------------
+May 23, 2005
+
+Release notes for UDF verifier release 1.2r0
+
+Changes since previous release 1.1r0
+
+
+New/modified UDF tests:
+
+- Added tests for new UDF 2.60 revision
+- Implemented most recent UDF 2.50 errata Document
+  checked: DCNs 5101,5102,5107,5108, ...
+- New tests for sparse Metadata extents.
+- Check blank block after VRS
+- Check for empty EntityID Identifier (developer ID).
+- Verify FID ICB field for Logical Block Number outside partition
+  and show translation error when reading FE.
+- fid->lengthOfImplementationUse must be multiple of 4, ECMA 4/14.4.6.
+- Improved AVDP locations test.
+- Removed max path size test for parent FIDs.
+- Implemented OS Class for MAC OS X (introduced in UDF 2.50)
+- Note in case an new OS Class/Identifier combination is used for older
+  UDF revisions as where they are defined. In the previous verifier
+  releases, this was a warning instead of a note and the test was
+  applied for new OS Classes only.
+- Read Unallocated Space Entry ICB (Space Table) for strategy 4096
+- When verifying from an image file, for many platforms, the image
+  file max chunk size has been changed from just below 2 Gbyte to
+  just below 2 Terabyte. This has not been tested for all platforms.
+  Please report in case of problems (Win95 ??).
+  Unfortunately, platform dependent code had to be introduced, so please
+  check the 'customizing' udf_tester/Makefile.uct for platform specific
+  definitions (LINUX, SOLARIS, HPUX, NETBSD, IRIX64, etc.).
+  Please report if platforms must be added.
+- New "-chunksize <MbSize>" option to reduce the default max
+  chunk size for -write_image, see "udf_test -help" for details.
+- Upgraded from V2 to V3 for Linux scsi interface.
+- Added "Simplified Direct-access Device", etc.
+
+Changes/corrections:
+
+- web site for download changed to: http://www.hitech-projects.com/udf/
+- Bug repair. Verifier did not see any SCSI/atapi devices if
+  host adapter zero was not used.
+- Bug repairs for printing used/unused block ranges
+- Bug repairs in case of a sparse extent in the metadata partition.
+- Accept devices with empty vendorIdentification or productRevisionlevel
+- Deliver bundled wnaspi32.dll in separate bin/win32-aspi directory
+  instead of bin/win32 in order not to interfer with other versions
+  of wnaspi32.dll that may already be installed.
+- Because Ahead changed its company name to Nero, the bundled aspi
+  licence text was adapted: changed "Ahead Software" to "Nero AG".
+- Bundled new wnaspi32.dll version 2.0.1.74 by courtesy of Nero AG.
+- Read buffers for -filecrc and -write_image/-inspect_image
+  from 16 Mb to 32 Mb.
+- In case the AVDPs at N-256 or N point to a different VDS as
+  the AVDP at S+256, the AVDP with the highest address is used
+  instead of the lowest as was done so far. This is beneficial for
+  multisession cases where the AVDP at N-256 and N are the ones of
+  the last session. (e.g. a multisession image file without
+  -startsession definitions).
+  It remains an error of course if the AVDPs are different.
+
+Known problems:
+
+- Only logical unit 0 of a drive is accessed.
+- Strategy 4096 blocks may be flagged as unused blocks.
+- For FE, Access, Modification and Attribute (Date and) Time,
+  do not (yet) compare to File Times EA Creation Time, if any.
+
+------------
+
+todo list for verifier implementation:
+(incomplete list)
+
+- double check UDF 2.50 errata tests
+- complete UDF 2.60 testing and test on BD drives
+- no Freed Space Bitmap/Table for access type 4.
+- verify Previous VAT ICB location
+- UniqueID mapping table tests
+- symbolic link expansion
+- Timestamps in Extended Attributes
+- permissions
+- ...
+
+Please inform me of errors, missing tests, etc. as soon as
+possible in order to improve the verifier. Also in the case
+of wrong or unclear UDF and ECMA references in messages.
+
+Gerrit Scholl.
+
+Philips Research
+G.J. Scholl, WDC 11
+Prof. Holstlaan 4
+5656 AA Eindhoven
+The Netherlands
+
+e-mail:   Gerrit.Scholl@philips.com
+
+___________________________________________________________
+

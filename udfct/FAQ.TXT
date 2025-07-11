@@ -1,0 +1,133 @@
+UDF verifier package usage:
+
+===============================================
+Get the latest UDF verifier
+
+from: http://www.hitech-projects.com/udf/
+
+Read the README.TXT file.
+
+The verifier is available for several platforms.
+
+==== Windows platform:
+see directories:
+  bin/win32
+  bin/win32-noscsi
+  bin/win32-aspi
+
+For verifying in a Windows environment from a medium in a drive
+the following files are needed:
+  bin/win32/udf_test.exe       ## the verifier
+  bin/win32/udf_scsi.dll       ## the Scsi/Atapi functions, see note:
+  bin/win32-aspi/wnaspi32.dll  ## Nero AG version, Vista, WinXP, Win2k, WinNT
+
+Note: udf_scsi.dll is removed for verifier release 1.5r2 and higher.
+      The scsi stuff is linked directly into udf_test.exe.
+
+A wnaspi32.dll version for WinXP, Win2k and WinNT is bundled
+with the UDF Verifier by courtesy of Nero AG.
+
+For further details on wnaspi and terms and conditions for use of
+the bundled wnaspi32.dll, see the file bin/win32-aspi/ASPI.TXT
+
+Drive support in this way does not only work for SCSI drives,
+but also for Atapi compatible IDE drives.
+
+wnaspi32.dll is placed in a separate directory in order not to
+interfer with other installed wnaspi32.dll versions in case the
+verifier is runned directly from the bin/win32 directory.
+
+If no scsi/atapi support is required, bin/win32-noscsi/udf_test.exe
+is the only binary that is needed to verify from an image file.
+
+==== other platforms:
+
+For other platforms look in the appropriate bin/* directories.
+Binaries with SCSI/Atapi support are only present for Windows and Linux.
+
+Scsi/Atapi support is also implemented for NetBSD, but no binaries are
+included.
+
+For all other platforms: Customize udf_tester/Makefile.uct
+and make ...
+
+For Irix64, also drive support is implemented, Irix64 does not use
+the scsi/atapi options of the verifier, but handles a device in the
+same way as a file.
+This may also work for other Unix-like platforms, e.g. for Linux.
+
+For Sun Solaris and HP-UX, the UDF verifier can only verify from an
+image file.
+
+Binaries available in the delivery at the moment are for Windows, Linux,
+Sun, HP, Irix64.
+
+It should not be a problem to compile the verifier for other platforms
+like Mac, BDS, ... (no drive support).
+----------------------------------------------------------------------
+
+UDF verifier usage
+------------------
+The verifier is a command line program that verifies UDF images and
+media for compliance with the UDF spec. UDF revisions 1.02 till 2.60
+are supported. The verifier is aimed at UDF implementers and shows a
+great deal of UDF details and logging.
+
+First thing to do with the verifier is send the "udf_test -help"
+output to a printer. This help information explains the verifier
+options and the verifier output layout.
+
+---------------
+Verify a UDF file system in an image file
+by: udf_test <image file path>
+
+The <image file path> can be a list of chunks. Each chunk
+with a size that is a multiple of the UDF block size and at
+most 2 Terabyte minus one block (for platforms where no
+'64 bit file size' code is used, the chunk limit is 2
+Gbyte minus one block).
+The total image file is the concatenation of all chunks in
+command line order.
+
+---------------
+For UDF verification directly from a medium in a drive,
+using scsi/atapi: first find the drive identification
+by: udf_test -showscsi
+
+A drive is identified by <host adapter>:<scsi id> (see help info).
+Verify the disc in the drive identified by x:y
+by: udf_test -scsi x:y
+
+Note: since release 1.0r5 it is also possible for Linux and NetBSD
+      to directly address any drive by: -scsc /dev/xxx
+
+---------------
+When the UDF verifier output is put in a file, the file can be
+inspected for errors, warnings and notes by performing a case
+insensitive search for "error:", "warning:" or "note:".
+
+---------------
+In case of questions or remarks about the verifier output,
+please send an e-mail to the address below.
+Please quote the appropriate part of the verifier output
+or even better, send the full verifier output with your
+e-mail as an attachment.
+Feedback is highly appreciated and may lead to improvement of
+the UDF verifier as well.
+
+---------------
+Code for adding drive support for specific platforms can be
+added.Please contact me in that case.
+Mind that these additions will not lead to a change in the
+Licence rules as stated in LICENSE.TXT.
+
+--
+--------------------------------------------------------------------
+Gerrit Scholl               address:   Philips Research Laboratories
+Building: HTC31 1.046                  G.J. Scholl, HTC31 1.046
+   Phone: +31 40 27 44029              High Tech Campus 31
+     Fax: +31 40 27 44004              5656 AE Eindhoven
+  mailto:gerrit.scholl@philips.com     The Netherlands
+--------------------------------------------------------------------
+
+

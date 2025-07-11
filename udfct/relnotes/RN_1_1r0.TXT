@@ -1,0 +1,90 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999-2004
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+--------------------------------------------------------------------------
+May 14, 2004
+
+Release notes for UDF verifier release 1.1r0
+
+Changes since previous release 1.0r5
+
+Corrections:
+
+- UDF 2.50 bug repair: AED descriptors of normal files must be in Metadata Partition.
+
+New tests, etc.:
+
+- Actual length of a virtual partition is the number of entries in the VAT table,
+  instead of the length of the underlying partition on which the Virtual partition
+  is mapped.
+- Verify partition allocation for a virtual partition. Unallocated blocks in a
+  virtual partition must be marked as #FFFFFFFF in the corresponding VAT entry.
+- New command line option -usemirror for UDF 2.50.
+  Uses Metadata Mirror File instead of Metadata File for Metadata Partition.
+- Make distinction between last valid block and last recorded block addresses.
+  This may be relevant for unfinalized and background formatting media.
+- Do not read in unrecorded gaps (after last recorded address, between tracks
+  and Free Blocks or padding blocks at end of track).
+- New -readgap option that forces reading in unrecorded gaps.
+- -showalloc layout changed: used and unsused ranges in one table.
+- Error if partition starts in first 32K of Volume space and warning if it
+  starts at an address less than 257.
+- Use GET CONFIGURATION and READ DVD STRUCTURE info instead
+  of obsolete Mode SENSE info
+- Switch off FUA bit for SCSI READ in order to use drive cache, this
+  makes the verifier much faster on many drives.
+- define and test Scsi Api Version (udf_scsi.dll for Win32) in order
+  to notice mismatch on API changes.
+- For LINUX/NETBSD scsi support: restricted the device range for
+  -showscsi and -scsi <h>:<s> in order to avoid too long execution times.
+  NOTE: -scsi /dev/* works for all values of * for scsi/atapi devices.
+- Win32 compilation with Studio.net 7.1 instead of Studio 6.
+
+Known problems:
+
+- For drives with multiple logical units, only logical unit
+  0 can be accessed.
+- Strategy 4096 blocks may be flagged as unused blocks.
+- For FE, Access, Modification and Attribute (Date and) Time,
+  do not (yet) compare to File Times EA Creation Time, if any.
+- Space Table with strategy type 4096 not implemented
+
+------------
+
+todo list for verifier implementation:
+(incomplete list)
+
+- complete UDF 2.50 testing
+- no Freed Space Bitmap/Table for access type 4.
+- timeout and timeout option for the time needed to determine
+  the lastvalidblock value (in case of read errors and -readgap).
+- verify last stream restrictions
+- verify Previous VAT ICB location
+- UniqueID mapping table tests
+- symbolic link expansion
+- finish Volume Structure descriptors
+- Timestamps in Extended Attributes
+- Space Table with strategy type 4096
+- permissions
+- ...
+
+Please inform me of errors, missing tests, etc. as soon as
+possible in order to improve the verifier. Also in the case
+of wrong or unclear UDF and ECMA references in messages.
+
+Regards, Gerrit Scholl.
+
+         Philips Research
+         G.J. Scholl, WDC 11
+         Prof. Holstlaan 4
+         5656 AA Eindhoven
+         The Netherlands
+
+e-mail:   Gerrit.Scholl@philips.com
+
+___________________________________________________________
+

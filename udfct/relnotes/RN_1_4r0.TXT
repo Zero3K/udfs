@@ -1,0 +1,78 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999-2006
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+--------------------------------------------------------------------------
+February 07, 2006
+
+Release notes for UDF verifier release 1.4r0
+
+Changes since previous release 1.3r0
+
+New/modified UDF tests:
+
+- Implemented DCN-5153: Modification, Access and Attribute Date and Time
+  warning instead of error when earlier than Creation Date and Time.
+- Added test: UDF 2.00 and higher should use EFE instead of FE
+- Blank-sector-after-VRS violation is always an error for UDF 2.01 and higher
+  revisions (was sometimes a warning if exact UDF revision not yet known).
+- Repaired file link count test bug for hard links with stream dir
+- Added test for illegal nested stream directory ICB of System Stream Dir.
+  This changed the order of tree walk. Streams attached to directories are
+  expanded just before the directory itself is expanded.
+- changed warning to note for use of long_ad for Metadata Bitmap File.
+- Added Minimum/Maximum UDF Read/Write Revision tests. In the UDF 1.50 VAT
+  case, the nmb of files/directiries and min/max UDF read/write revisions
+  from the Open LVID are shown but only the min/max read/write revisions
+  are tested.
+
+Non-functional changes/corrections:
+
+- Running platform and scsi support indication in logging.
+- Commented out 'unreachable breaks' and some other adaptations to avoid
+  warnings messages for some compilers.
+- removed __cdecl  (not used / default)
+- Removed obsolete LINUX sg_header/SCSI_OFFSET scsi method code.
+
+Known problems:
+
+- Only logical unit 0 of a drive is accessed.
+- Strategy 4096 blocks may be flagged as unused blocks.
+- For FE, Access, Modification and Attribute Date and Time,
+  no compare (yet) to File Times EA Creation Time, if any.
+
+------------
+
+todo list for verifier implementation:
+(incomplete list)
+
+- remove obsolete -packetlength option.
+- double check UDF 2.50 errata tests
+- complete UDF 2.60 testing and test on BD drives
+- no Freed Space Bitmap/Table for access type 4.
+- verify Previous VAT ICB location
+- UniqueID mapping table tests
+- symbolic link expansion
+- Timestamps in Extended Attributes
+- permissions
+- ...
+
+Please inform me of errors, missing tests, etc. as soon as
+possible in order to improve the verifier. Also in the case
+of wrong or unclear UDF and ECMA references in messages.
+
+Gerrit Scholl.
+
+address:  Philips Research Laboratories
+          G.J. Scholl, HTC31 1.046
+          High Tech Campus 31
+          5656 AE  Eindhoven
+          The Netherlands
+
+e-mail:   Gerrit.Scholl@philips.com
+
+___________________________________________________________
+

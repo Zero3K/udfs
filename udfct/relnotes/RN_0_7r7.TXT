@@ -1,0 +1,89 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999, 2000
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+---------------------------------------------------------------------------
+May 29, 2000
+
+Release notes for UDF verifier release 0.7r7
+
+Changes since release 0.7r5
+
+main changes: Far better windows drive support and multi-file
+              abstraction for image file.
+
+- Drive support for windows is enhanced. Tested for several MMC-1 drives
+  that show up as scsi (CD, DVD, MO), also IDE Atapi devices.
+  Backwards compatible with older drives that were supported by previous
+  verifier releases. Please report if your drive does not work with this
+  release of the verifier.
+  Use commands:
+   udf_test -showscsi
+        Last lines of output from this command are most important.
+        They show the host adapter and scsi id of devices possibly
+        containing UDF.
+   udf_test -scsi <h>:<s>        e.g.: udf_test -scsi 3:1
+        Verify UDF on device with host adapter <h> = 3 and scsi id <s> = 1
+
+- Number of bytes to read from a device at once is reduced from 64 Kbyte
+  to 32 Kbyte, because the Adaptec APA-1480 PCMCIA card hangs on 64 Kbyte.
+
+- Multiple file abstraction for image file in order to circumvent maximum
+  file size (and maximum file system partition size) limitations.
+  1) Image file argument can now be a list of files that are the chunks of
+     the total image file. Each chunk file has a size that is a multiple
+     of the block size and is less than 2 Gbyte (2*1024*1024*1024 bytes).
+     The total UDF image file to be verified is the concatenation of all
+     the chunk files in the list.
+     example: udf_test a:\chunk01.img b:\chunk02.img c:\chunk03.img
+  2) The -write_image utility does write the output image file in chunks of
+     less than 2 Gbyte, as defined above. Using the -start and
+     -lastvalidblock options, any part of the input image can be written out.
+
+- A new "-start <startblock>" option is introduced and the <start> argument
+  of the -inspect_image option is removed.
+  "-start <startblock>" can only be used to define the start block for the
+  -write_image and -inspect_image options.
+
+For details see: udf_test -help
+
+corrections:
+- change text for AED CRC length exception
+- repair media type setting bug
+- ignore system stream directory Unique ID.
+- UDF 2.01 is now a legal UDF release (-udf 2.01).
+  Not all 2.01 tests are yet in place.
+
+todo list for verifier implementation (incomplete list)
+(at least the head of this list is in priority order)
+
+- verify stream restrictions
+- Space Tables for partition allocation checks
+- File Link Count for non-directory FEs
+- finish FID and FE testing
+- Unallocated Space Descriptor checks
+- symbolic link expansion
+- Timestamps
+- permissions
+- Full UniqueID testing
+- Finish UDF 2.01 tests
+- ...
+
+Please inform me of errors, etc. as soon as possible
+in order to improve the verifier. Also in the case of
+wrong or unclear UDF and ECMA references in messages.
+
+Regards, Gerrit Scholl
+
+          Philips Research, G.J. Scholl
+          Prof. Holstlaan 4, building WL11
+          5656 AA Eindhoven
+          The Netherlands
+
+e-mail:   Gerrit.Scholl@philips.com
+
+___________________________________________________________
+

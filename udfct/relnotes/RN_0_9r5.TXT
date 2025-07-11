@@ -1,0 +1,95 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999-2002
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+---------------------------------------------------------------------------
+August 1, 2002
+
+Release notes for UDF verifier release 0.9r5
+
+Changes since release 0.9r2
+
+- Improved Partition Map and File Type testing.
+- Test on icbtag.parentICBlocation field.
+- Corrections of byte posistion (BP) in IcbTag messages.
+- Correction of LVID/VAT "Number of Files" and "Number of
+  Directories" tests. "Marked for Delete" files and direcories
+  must not be counted.
+- Warning instead of an error if packet Length is overruled
+  by a value that is a multiple of the previous value.
+  E.g. for UDF 2.00 and lower when a packet length of 16 from a
+  DVD medium is overruled bij a value of 32 from the Sparing Table.
+- finished PD verification.
+- verify Min/Max UDF Revision range
+- Show permissions in directory listing. Can be supressed
+  by new "-noperm" option.
+- -inspect_image: more strict test for Sparing Table,
+  Often too many Sparing Tables were shown.
+- Hex numbers for Tag Checksum error.
+- If scsi/atapi device initialization fails and -lastvalidblock <x>
+  is defined, then try to access the device anyway using N = <x>.
+- Use MMC-3 terminology, Mt. Fuji incorporated in MMC-3 now.
+
+- Bug repair in timestamps time comparison.
+  It is unimaginable that nobody reported this bug.
+- Test if medium Last Modification Time (LVID or VAT)
+  is not in the future.
+- Reshuffle of messages and actions involved with Timestamp time
+  comparison when at least one Timestamp has an undefined timezone.
+  Time comparison is now also executed if one timezone is undefined
+  and the other is not. This seems to be the best solution because
+  both are supposed to be 'local time' according to UDF, 2. Basic
+  Restrictions & Requirements.
+  Only one warning for this at the end of verifier output. No warning
+  count for every occurrence (sometimes thousands) as in previous
+  verifier release. Warning text:
+    Warning: At least one Timestamp with an undefined timezone
+             was involved in a Timestamp time comparison.
+      For a time comparison where at least one undefined timezone
+      is involved, the timezone values are ignored.
+- Changed timestamp message: "t1 shall not be earlier than t2"
+                         to: "t2 shall not be later than t1".
+
+Download packet Changes:
+
+- Adapted ASPI.TXT because of obsolete link.
+
+Known problems:
+
+- For drives with multiple logical units, only logical unit
+  0 can be accessed.
+- Strategy 4096 blocks may be flagged as unused blocks.
+
+todo list for verifier implementation (incomplete list)
+(at least the head of this list is in priority order)
+
+- Unallocated Space Descriptor checks
+- UniqueID mapping table tests
+- verify last stream restrictions
+- symbolic link expansion
+- finish Volume Structure descriptors
+- Timestamps in Extended Attributes
+- Space Table with strategy type 4096
+- permissions
+- finish special UDF 2.01 tests
+- ...
+
+Please inform me of errors, etc. as soon as possible
+in order to improve the verifier. Also in the case of
+wrong or unclear UDF and ECMA references in messages.
+
+Regards, Gerrit Scholl.
+
+         Philips Research
+         G.J. Scholl, WDC 11
+         Prof. Holstlaan 4
+         5656 AA Eindhoven
+         The Netherlands
+
+e-mail:   Gerrit.Scholl@philips.com
+
+___________________________________________________________
+

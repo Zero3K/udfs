@@ -1,0 +1,116 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999-2005
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+--------------------------------------------------------------------------
+September 13, 2005
+
+Release notes for UDF verifier release 1.3r0
+
+Changes since previous release 1.2r2
+
+
+New/modified UDF tests:
+
+- Implemented 'far apart' calculations for Metadata/Mirror files and
+  Main/Reserve VDS also for both DL OPT and DL PTP cases.
+  So the layout of a DL disc is taken into account where sectors can be
+  physically 'nearby' on the medium while the sector address difference
+  is huge and the other way about (e.g. for PTP).
+  The base size for these calculations is the Volume Space for the single
+  layer case and the Layer zero capacity for the DL case.
+  The 'remaining base size' is the 'base size' minus the allocations itself
+  (e.g. for the Metadata file and its mirror).
+  In all cases a 'far apart' summary is shown with the lowest ECC packet
+  distances and LBAs of allocations for e.g. the Metadata File and mirror.
+  Further, a warning is printed if the distance is less than 10 percent of the
+  above mentioned 'remaining base size' and a note if less than 25 percent.
+  Layer zero capacity and PTP/OTP is read from the medium or from the new
+  -L0capacity <n> and -PTP options (options e.g. for verifying image files).
+  The LO capacity must be an integer multiple of the ECC blocking factor and
+  at least half the Volume Space.
+
+- New -L0capacity <n> option for multi layer 'far apart' 'physical distance'
+  calculations. <n> is the Layer zero capacity in sectors and shall be an
+  integral multiple of the ECC blocking factor and at least half the Volume
+  Space. The default for -L0capacity <n> is OTP (Opposite Track Path).
+- New -PTP option for multi layer 'far apart' 'physical distance' calculations.
+  -PTP defines a Parallel Track Path, the default is Opposite Track Path (OTP).
+  If no -L0capacity <n> option is defined, -PTP is ignored.
+
+- Introduce intermediate state for single AVDP on a medium with background
+  formatting not complete (e.g. DVD+R, UDF 6.13.2.2).
+
+- Always show Information Length value in directory listing
+  (also if less bytes are allocated in the file body)
+
+- Change SBD CRC Length "8 is recommended" warning to a Note
+  for UDF revisions of 2.01 and lower.
+
+- Show all relevant icbtag Flags bits in directrory listing such as:
+  allocation type, Archive, Setuid, SetGid, Sticky and Stream bits.
+  For changed layout, see -help option output text.
+
+- Use AVDP with lowest address (normally AVDP at 256).
+  (This means back to situation as for verifier release 1.1r0 and lower.
+   Reading AVDP at 256 can still be avoided by using the '-ignoreAVDP256'
+   command line option.)
+
+- Untangle ECC blocking factor and Sparing Packet Length usage,
+  therefore:
+- New "-ecclength <n>" option replaces "-packetlength <n>" option.
+  "-packetlength" will become obsolete !!!!
+
+
+Changes/corrections:
+
+- (crash) bug repair for weird metadata mirrow allocation.
+- Bug repair for realloc problem coming to the surface on NetBSD
+  (thanks to Reinoud Zandijk).
+- remove unreachable debug code.
+- Replace most of the message printing macros by functions,
+  thus reducing the verifier footprint.
+
+Known problems:
+
+- Only logical unit 0 of a drive is accessed.
+- Strategy 4096 blocks may be flagged as unused blocks.
+- For FE, Access, Modification and Attribute (Date and) Time,
+  do not (yet) compare to File Times EA Creation Time, if any.
+
+------------
+
+todo list for verifier implementation:
+(incomplete list)
+
+- check outcome DCN-5152
+- remove obsolete -packetlength option.
+- double check UDF 2.50 errata tests
+- complete UDF 2.60 testing and test on BD drives
+- no Freed Space Bitmap/Table for access type 4.
+- verify Previous VAT ICB location
+- UniqueID mapping table tests
+- symbolic link expansion
+- Timestamps in Extended Attributes
+- permissions
+- ...
+
+Please inform me of errors, missing tests, etc. as soon as
+possible in order to improve the verifier. Also in the case
+of wrong or unclear UDF and ECMA references in messages.
+
+Gerrit Scholl.
+
+Philips Research
+G.J. Scholl, WDC 11
+Prof. Holstlaan 4
+5656 AA Eindhoven
+The Netherlands
+
+e-mail:   Gerrit.Scholl@philips.com
+
+___________________________________________________________
+

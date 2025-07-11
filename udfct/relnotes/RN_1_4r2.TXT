@@ -1,0 +1,71 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999-2006
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+--------------------------------------------------------------------------
+April 10, 2006
+
+Release notes for UDF verifier release 1.4r2
+
+Changes since previous release 1.4r0
+
+New/modified UDF tests:
+
+- New test for Metadata Bitmap File: (E)FE Information Length shall be
+  equal to Metadata SBD size, UDF 2.2.13.2 and 2.2.13.5+6.
+  Actual size (reserved) for bitmap can still be bigger than current bitmap
+  size by making SBD: numberOfBytes > ROUNDUP(numberOfBits/8),
+  see ECMA 4/14.12.3.
+- Test minimum of 8K bytes for LVID sequence extent length for
+  overwritable and rewritable media, UDF 2.2.4.6.
+- Correction: Min UDF Write Revision 2.00 for UDF 2.01+ media is not always
+              considered to be and error, because 'small' differences between
+              UDF 2.00 and UDF 2.01.
+- removed obsolete -packetlength option, use -ecclength instead.
+
+Non-functional changes/corrections:
+
+- Message text change: Do not mix up UDF 2.00- and UDF 2.01+ error/warning
+  conditions in error/warning message for Sparable Partition Map Packet Length.
+
+Known problems:
+
+- Only logical unit 0 of a drive is accessed.
+- Strategy 4096 blocks may be flagged as unused blocks.
+- For FE, Access, Modification and Attribute Date and Time,
+  no compare (yet) to File Times EA Creation Time, if any.
+
+------------
+
+todo list for verifier implementation:
+(incomplete list)
+
+- double check UDF 2.50 errata tests
+- complete UDF 2.60 testing and test on BD drives
+- no Freed Space Bitmap/Table for access type 4.
+- verify Previous VAT ICB location
+- UniqueID mapping table tests
+- symbolic link expansion
+- Timestamps in Extended Attributes
+- permissions
+- ...
+
+Please inform me of errors, missing tests, etc. as soon as
+possible in order to improve the verifier. Also in the case
+of wrong or unclear UDF and ECMA references in messages.
+
+Gerrit Scholl.
+
+address:  Philips Research Laboratories
+          G.J. Scholl, HTC31 1.046
+          High Tech Campus 31
+          5656 AE  Eindhoven
+          The Netherlands
+
+e-mail:   Gerrit.Scholl@philips.com
+
+___________________________________________________________
+

@@ -1,0 +1,72 @@
+========================================================
+     LICENSE CONDITIONS UDF VERIFICATION SOFTWARE
+========================================================
+
+Koninklijke Philips Electronics N.V. ("Philips")
+is willing to license its UDF verification software
+("Software") to you ("customer") only upon the condition
+that you accept all of the terms contained in this
+license agreement ("agreement").
+
+If you do not agree with the conditions of this license
+remove the Software from your computer systems and off-
+line storage media.
+
+1. License to use
+=================
+
+Customer is granted a non-exclusive and non-transferable
+license to use the Software on any computer system(s),
+which are under customer's control, for the purpose of
+experimenting with verification of the conformance of
+optical disks to the UDF standard.
+
+2. Restrictions
+===============
+
+Customer may modify the source code of the Software
+provided:
+
+  ·  the copyright notice is kept unmodified in each
+     source code file, and
+  ·  this license agreement is kept together with the
+     modified source code files, and
+  ·  a copy of the modified source code is e-mailed to:
+
+          Gerrit.Scholl@philips.com
+
+     or snail-mailed to:
+
+          Philips Research Laboratories
+          G.J. Scholl, HTC31 1.046
+          High Tech Campus 31
+          5656 AE  Eindhoven
+          The Netherlands
+
+Licensee shall not include (part of) the software in a
+product.
+
+3. Disclaimer of warranty
+==========================
+
+This is experimental software. It is incomplete. Philips
+is not committed to completing the Software, or to solve
+any problem perceived by Customer.
+
+The Software is provided "as is". All express or implied
+conditions, representations and warranties, including any
+implied warranty of merchantability, fitness for a
+particular purpose or non-infringement, are hereby
+excluded to the extent allowed by applicable law.
+
+4. Limitation of liability
+==========================
+
+In no event will Philips be liable for any lost revenue,
+profit or data, or for special, indirect, consequential,
+incidental or punitive damages however caused and
+regardless of the theory of liability arising out of the
+downloading of, use of, or inability to use, the
+Software, even if Philips has been advised of the
+possibility of such damages.
+

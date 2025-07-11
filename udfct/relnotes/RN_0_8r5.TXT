@@ -1,0 +1,77 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999-2001
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+---------------------------------------------------------------------------
+February 27, 2001
+
+Release notes for UDF verifier release 0.8r5
+
+Changes since release 0.8r2
+
+- Added disclaimer at end of verifier output.
+- Checking equivalence and consistency of Main VDS and
+  Reserve VDS, according to ECMA 3/8.4.1 and 3/8.4.2.3.
+  Many test images showed errors here, check !!
+- Show VDS summary with descriptors VDS Number.
+- Verify and show all Dstring fields.
+  Many test images showed errors here, check !!
+- Verify all OSTA CS0 Charspec fields
+- test zero extent length in Unallocated
+  Space Descriptor AD field.
+- Overlapping partitions, nmb of PDs and partition maps.
+- show verification start and elapsed time
+- extra note in case of EntityID Flags UDF/DVD conflict
+- From now also HP-UX binary delivered and tested
+  (no HP-UX drive support)
+- Some more customizing explanation in udf_tester/Makefile.uct
+
+Corrections:
+- Change "UCT time" to "UTC time" in messages, this seems
+  to be the official acronym.
+  UDF  spec uses: "Coordinated Universal Time"
+  ECMA spec uses: "Universal Coordinated Time"
+- bug repair: in some cases, the verifier crashed
+  if an 'out of range' partition reference number
+  was found in an allocation descriptor.
+- bug repair: the verifier crashed on certain errors
+  when reading an Unallocated Space Entry.
+- small error message corrections.
+
+Some of the bugs repaired were brought to my attention
+by verifier users, thanks for this feedback.
+
+todo list for verifier implementation (incomplete list)
+(at least the head of this list is in priority order)
+
+- UniqueID testing by cross reference of all FID/FE
+- UniqueID mapping table tests
+- verify last stream restrictions
+- symbolic link expansion
+- finish FID and FE testing
+- finish Volume Structure descriptors
+- Timestamps in Extended Attributes
+- Unallocated Space Descriptor checks
+- Space Table with strategy type 4096
+- permissions
+- finish UDF 2.01 tests
+- ...
+
+Please inform me of errors, etc. as soon as possible
+in order to improve the verifier. Also in the case of
+wrong or unclear UDF and ECMA references in messages.
+
+Regards, Gerrit Scholl
+
+          Philips Research, G.J. Scholl
+          Prof. Holstlaan 4, building WL11
+          5656 AA Eindhoven
+          The Netherlands
+
+e-mail:   Gerrit.Scholl@philips.com
+
+___________________________________________________________
+

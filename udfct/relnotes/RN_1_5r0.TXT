@@ -1,0 +1,76 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999-2006
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+--------------------------------------------------------------------------
+May 10, 2006
+
+Release notes for UDF verifier release 1.5r0
+
+Changes since previous release 1.4r2
+
+New/modified UDF tests:
+
+- New test: UDF 3.3.5.1: "Named Streams and Stream Directories shall not have
+  Extended Attributes.".
+  MANY VIOLATIONS, so check your implementation !!
+- Correction of (E)FE Checkpoint field test (must be > 0, ECMA 4/14.9.15).
+  Because of a bug in the verifier, Checkpoint was never properly tested before,
+  so this is also a new test in fact.
+  MANY VIOLATIONS, so check your implementation !!
+- Test UDF Defined Stream Names (3.3.7 and 3.3.8).
+- Test FID Metadata bit for UDF Defined Streams (3.3.7 and 3.3.8).
+- Test Named Stream Names, starting with "*UDF" (3.3.5.2).
+- Error if end of VDS extent or LVID sequence extent outside volume space,
+  also if this last secor is not read because of an earlier TD.
+
+Non-functional changes/corrections:
+
+- Bug repair: Verifier was hanging in 'far apart' calculation
+  if VDS outside volume space.
+- For Win32 binary generation upgraded to "Visual Studio 2005" using "Release"
+  (instead of "Debug" version created by Visual Studio 7.1).
+- restriction of 'message limit to 10' for some errors.
+- Do not expand stream dirs for UDF 1.50 and 1.02
+
+Known problems:
+
+- Only logical unit 0 of a drive is accessed.
+- Strategy 4096 blocks may be flagged as unused blocks.
+- For FE, Access, Modification and Attribute Date and Time,
+  no compare (yet) to File Times EA Creation Time, if any.
+
+------------
+
+todo list for verifier implementation:
+(incomplete list)
+
+- double check UDF 2.50 errata tests
+- complete UDF 2.60 testing and test on BD drives
+- no Freed Space Bitmap/Table for access type 4.
+- verify Previous VAT ICB location
+- UniqueID mapping table tests
+- symbolic link expansion
+- Timestamps in Extended Attributes
+- permissions
+- ...
+
+Please inform me of errors, missing tests, etc. as soon as
+possible in order to improve the verifier. Also in the case
+of wrong or unclear UDF and ECMA references in messages.
+
+Gerrit Scholl.
+
+address:  Philips Research Laboratories
+          G.J. Scholl, HTC31 1.046
+          High Tech Campus 31
+          5656 AE  Eindhoven
+          The Netherlands
+
+e-mail:   Gerrit.Scholl@philips.com
+
+___________________________________________________________
+

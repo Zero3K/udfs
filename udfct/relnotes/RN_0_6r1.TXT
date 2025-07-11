@@ -1,0 +1,55 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+---------------------------------------------------------------------------
+November 30, 1999
+
+Release notes for UDF verifier release 0.6r1
+
+The main change is implementation of sparing and
+Sparable Partition Map and Sparing Table checks.
+This means that images and media using sparing can now
+make full use of the verifier as for other UDF media
+and that sparing is checked.
+
+Changes since previous release 0.5r4
+
+- Sparing implemented and most Sparing tests in place.
+- No more default packet length, read from device or
+  sparable partition map. Zero if undefined.
+- Changes reported by Cary Boyd to keep Mac compiler happy.
+
+Todo list for verifier implementation (incomplete list)
+(at least the head of this list is in priority order)
+
+- Complete Sparing Table Mapped Location tests
+- handle descriptors longer than the block size.
+- streams
+- Extended Attributes reading.
+- finish FID and FE testing
+- File Link Count
+- symbolic links
+- Timestamps
+- Full UniqueID testing
+- allocated Space checks
+- ...
+
+Please inform me of errors, etc. as soon as possible
+in order to improve the verifier. Also in the case of
+wrong or unclear UDF and ECMA references in messages.
+
+Regards, Gerrit Scholl
+
+          Philips Research, G.J. Scholl
+          Prof. Holstlaan 4, building WL11
+          5656 AA Eindhoven
+          The Netherlands
+
+e-mail:   Gerrit.Scholl@philips.com
+
+___________________________________________________________
+

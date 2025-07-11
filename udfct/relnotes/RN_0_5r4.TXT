@@ -1,0 +1,62 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+---------------------------------------------------------------------------
+November 4, 1999
+
+Release notes for UDF verifier release 0.5r4
+
+Release 0.5r1 contained a bug in the -write_image option
+for some OSes. No problem for UNIX, but problems on Windows 95/98
+and maybe Windows NT.
+If you created image files using the verifier 0.5r1, please redo
+using this release 0.5r4.
+
+Changes since previous release 0.5r1
+
+- Repaired -write_image bug for writing blank blocks
+  on some platforms.
+- Summary correction for -inspect_image.
+- Some corrections and additions during the OSTA plugfest.
+- Added a directory bin/win32-i386-noscsi to the delivery
+  containing a verifier binary compiled with NO_SCSI,
+  which means that it can only read from an image file
+  and does not need udf_scsi.dll and wnaspi32.dll.
+
+Not yet included in the verifier (incomplete list) :
+
+- Sparing
+- handle descriptors longer than the block size.
+- File Link Count
+- Extended Attributes
+- Timestamps
+- Full UniqueID testing
+- allocated Space checks
+- streams
+- ...
+
+First foreseen additions:
+
+- Sparing
+- descriptors longer than the block size.
+- Complete the tests for FID and File Entry.
+
+Please inform me of errors, etc. as soon as possible
+in order to improve the verifier. Also in the case of
+wrong or unclear UDF and ECMA references in messages.
+
+Regards, Gerrit Scholl
+
+          Philips Research, G.J. Scholl
+          Prof. Holstlaan 4, building WL11
+          5656 AA Eindhoven
+          The Netherlands
+
+e-mail:   Gerrit.Scholl@philips.com
+
+___________________________________________________________
+

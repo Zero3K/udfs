@@ -1,0 +1,103 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999-2002
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+---------------------------------------------------------------------------
+Januari 22, 2002
+
+Release notes for UDF verifier release 0.9r2
+
+Changes since release 0.9r1
+
+- verify all UniqueID, except the UniqueID mapping table
+- new -showalloc option, shows lists of partition allocated
+  and unused contiguous extents in partition summary.
+- new "-dummysession <nblocks>" option, meant to be used as
+  a placeholder for non-data sessions for Mixed Mode Multisession
+  images. An implicite "-sessionstart <x>" option is inserted
+  for the session following the dummy session.
+  As usual see -help output for details.
+- On -filecrc show file size as well, new format for file crc
+  record in verifier output:
+  <tab>file CRC: <path>, 0x<hex body crc>, <body byte size>
+- show all hard links when verifying file link count.
+- Timestamp checks: no more special handling of error Type 0.
+  Mark erroneous timestamps with '*' in first position.
+- Warning if timestamp UTC offset is not a multiple of 15 minutes.
+- Reduced some fixed message limits in order to reduce output
+  (e.g. from 500 to 20 for timestamp errors). Can be overruled
+  by 'all infinite' message limit option: "-mlimit 0".
+- show all EntityIDs for -mlimit 0 option ('all infinite'
+  message limit).
+- For a dirty Volume with an Open prevailing LVID but no
+  virtual partition, the verifier will verify the volume
+  as if the LVID were not Open in order to show all
+  LVID and volume inconsistencies.
+- Add fake file tail read for EA and VAT files and repair of
+  incorrect file tail read for normal files.
+  After file body read, also a fake file tail read is done
+  in order to show the total file allocations.
+- Show checksum and CRC values in messages as hex numbers.
+- Instead of inspection of up to 450 last blocks before starting
+  verification, first inspect only last valid block.
+  If no AVDP or VAT found then inspect more blocks.
+- Avoid reading reserved track for last valid block inspection.
+- Improved check on inconsistent track information.
+- Use Mt. Fuji READ TRACK/RZONE INFORMATION for Last Recorded
+  Address, improvement for open DVD-R.
+
+Corrections:
+
+- Non-Allocatable Space Stream/List is not obligatory in case
+  of a Sparable partition if the Sparing mapping area is not
+  inside a partition.
+- For a read-only partition, the LVID Free Space must be zero.
+- For a non-sequential write once partition, the LVID Free
+  Space can be less than (<partition size> - <number of allocated
+  blocks>) because of unused blocks that have been used and
+  recorded in the past.
+- Uid and Gid check changed from error to warning because of
+  "unless otherwise specified by the user." in UDF 3.3.3.1+2.
+- Correction of size test for last EA in an EA Space.
+- Repair failure on zero mapping size of Sparing Table,
+  warning added.
+
+Known problems:
+
+- For drives with multiple logical units, only logical unit
+  0 can be accessed.
+- Strategy 4096 blocks may be flagged as unused blocks.
+
+todo list for verifier implementation (incomplete list)
+(at least the head of this list is in priority order)
+
+- UniqueID mapping table tests
+- verify last stream restrictions
+- symbolic link expansion
+- finish Volume Structure descriptors
+- Timestamps in Extended Attributes
+- Unallocated Space Descriptor checks
+- Space Table with strategy type 4096
+- permissions
+- finish UDF 2.01 tests
+- ...
+
+Please inform me of errors, etc. as soon as possible
+in order to improve the verifier. Also in the case of
+wrong or unclear UDF and ECMA references in messages.
+
+Regards, Gerrit Scholl.
+
+         Philips Research
+         G.J. Scholl, WDC 11
+         Prof. Holstlaan 4
+         5656 AA Eindhoven
+         The Netherlands
+
+e-mail:   Gerrit.Scholl@philips.com
+
+___________________________________________________________
+

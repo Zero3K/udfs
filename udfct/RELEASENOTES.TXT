@@ -1,0 +1,65 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999-2007
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+--------------------------------------------------------------------------
+September 13, 2007
+
+Release notes for UDF verifier release 1.5r6
+
+Changes since previous release 1.5r4
+
+New/modified UDF tests:
+
+- modified test: Parent FID takes its UDF UniqueID from the (E)FE of
+                 the parent directory.
+- Implemented DCN-5163, approved June 2006.
+- Exit status now defined to indicate errors and/or warnings, see -help text.
+
+Further changes/corrections:
+
+- Sparing table number correction in read error message for last sparing table
+  in case of more than 1 table.
+
+Implementation changes/corrections/remarks:
+
+- Delete MACOS conditional code which was for Macintosh OS 9 and lower.
+- Add raw_device support for Macintosh OS X and adapt Makefiles for compilation
+  on Macintosh OS X. (see udf_tester/Makefile.uct for MACOSX customizing).
+
+Known problems:
+
+- Scsi support only accesses logical unit 0 of a drive.
+- Strategy 4096 blocks may be flagged as unused blocks.
+- For FE, Access, Modification and Attribute Date and Time,
+  no compare (yet) to File Times EA Creation Time, if any.
+
+------------
+
+todo list for verifier implementation:
+(incomplete list)
+
+- double check UDF 2.50 errata tests
+- complete UDF 2.60 testing and test on BD drives
+- no Freed Space Bitmap/Table for access type 4.
+- verify Previous VAT ICB location
+- UniqueID mapping table tests
+- symbolic link expansion
+- Timestamps in Extended Attributes
+- permissions
+- ...
+
+
+Please inform me of errors, missing tests, etc. as soon as
+possible in order to improve the verifier. Also in the case
+of wrong or unclear UDF and ECMA references in messages.
+
+Gerrit Scholl.
+
+e-mail:   udf.scholl@upcmail.nl
+
+___________________________________________________________
+

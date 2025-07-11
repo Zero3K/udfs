@@ -1,0 +1,79 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999-2005
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+--------------------------------------------------------------------------
+June 08, 2005
+
+Release notes for UDF verifier release 1.2r2
+
+Changes since previous release 1.2r0
+
+
+New/modified UDF tests:
+
+- Correction of LVID Free Space test for pseudo-overwritable partition
+
+- Changed most cases of metadata 'far apart' violation from a Warning to
+  a Note for the moment, because this is not well defined and there are
+  some situations where this is hard to achieve, like for multisession,
+  multilayer, POW, ...
+  Maybe later conditionally change the Note back to a Warning.
+  Test margin for Note: MAX( 1000, 25% of verify session space )
+                  [was: MAX( 1024, 25% of volume space )]
+  A warning will be generated if there are only 10 or less
+  (ECC) packets in between any block allocated for the Metadata File
+  and the ones allocated for its mirror (this is not yet implemented
+  fully for all 'overlapping' cases).
+Note:
+  The warning case may be extended, because this is a real minimum.
+  Further the test will also be used for 'far apart' of Main VDS and
+  Reserve VDS, which is not tested yet at the moment.
+
+Changes/corrections:
+
+- if INQUIRY fails, then retry it after successful TEST UNIT READY
+- removed some obsolete dead code
+
+Known problems:
+
+- Only logical unit 0 of a drive is accessed.
+- Strategy 4096 blocks may be flagged as unused blocks.
+- For FE, Access, Modification and Attribute (Date and) Time,
+  do not (yet) compare to File Times EA Creation Time, if any.
+
+------------
+
+todo list for verifier implementation:
+(incomplete list)
+
+- double check UDF 2.50 errata tests
+- 'far apart' test for Main and Reserve VDS.
+- complete UDF 2.60 testing and test on BD drives
+- no Freed Space Bitmap/Table for access type 4.
+- verify Previous VAT ICB location
+- UniqueID mapping table tests
+- symbolic link expansion
+- Timestamps in Extended Attributes
+- permissions
+- ...
+
+Please inform me of errors, missing tests, etc. as soon as
+possible in order to improve the verifier. Also in the case
+of wrong or unclear UDF and ECMA references in messages.
+
+Gerrit Scholl.
+
+Philips Research
+G.J. Scholl, WDC 11
+Prof. Holstlaan 4
+5656 AA Eindhoven
+The Netherlands
+
+e-mail:   Gerrit.Scholl@philips.com
+
+___________________________________________________________
+

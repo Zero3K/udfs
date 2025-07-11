@@ -1,0 +1,82 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999-2003
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+---------------------------------------------------------------------------
+July 30, 2003
+
+Release notes for UDF verifier release 1.0r2
+
+Changes since release 1.0r1
+
+New tests, etc.:
+
+- UDF 2.50 specific tests added, a.o.
+  - test if metadata allocation is according to duplicate flag
+  - test allocation and alignment of metadata extents
+  - etc...
+- for UDF 2.50+ :
+  Use -packetlength option for defining the ECC length in blocks.
+  If (ECC) packetlength is not defined by the drive OR
+       on the command line OR in the image configuration file,
+  then 16 will be used as the default (ECC) -packetlength value.
+
+Corrections:
+
+- Corrected Taglocation test for Metadata Bitmap File SBD.
+  Test was wrong for non-embedded case.
+- Correction of Byte Position in message for long_ad Partition
+  Reference Number test.
+
+Known problems:
+
+- Not all UDF 2.50 specific tests are already implemented
+- For drives with multiple logical units, only logical unit
+  0 can be accessed.
+- Strategy 4096 blocks may be flagged as unused blocks.
+- For FE, Access, Modification and Attribute (Date and) Time,
+  do not (yet) compare to File Times EA Creation Time, if any.
+- Space Table with strategy type 4096 not implemented
+
+------------
+
+todo list for verifier implementation:
+(incomplete list)
+(at least the head of this list is in priority order)
+
+- add specific UDF 2.50 tests
+- no Freed Space Bitmap/Table for access type 4.
+- timeout and timeout option for the time needed to determine
+  the lastvalidblock value (in case of read errors).
+- Unallocated Space Descriptor checks
+- verify last stream restrictions
+- finish Volume Structure descriptors
+- verify if unused VAT entry is #FFFFFFFF (warn or error??)
+- UniqueID mapping table tests
+- symbolic link expansion
+- finish Volume Structure descriptors
+- Timestamps in Extended Attributes
+- Space Table with strategy type 4096
+- permissions
+- finish special UDF 2.01 tests
+- ...
+
+Please inform me of errors, etc. as soon as possible
+in order to improve the verifier. Also in the case of
+wrong or unclear UDF and ECMA references in messages.
+
+Regards, Gerrit Scholl.
+
+         Philips Research
+         G.J. Scholl, WDC 11
+         Prof. Holstlaan 4
+         5656 AA Eindhoven
+         The Netherlands
+
+e-mail:   Gerrit.Scholl@philips.com
+
+___________________________________________________________
+

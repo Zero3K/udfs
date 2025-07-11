@@ -1,0 +1,128 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999-2004
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+--------------------------------------------------------------------------
+February 24, 2004
+
+Release notes for UDF verifier release 1.0r5
+
+Changes since previous release 1.0r2
+
+New tests, etc.:
+
+- More UDF 2.50 tests.
+- Show "Volume identifiers summary". Shows all Volume, Volume Set,
+  Logical Volume and File Set Identifiers.
+- Verify relation between LVD, FSD, IUVD and VAT2 Logical Volume Identifier.
+- Verify USD extents defining free Volume Space.
+- New tests for PVD and FSD (interchange levels, flags).
+- Verify LVD LogicalBlockSize
+- Recognize "*UDF VAT LVExtension" EA from UDF 1.50 errata as a
+  valid UDF defined EA. Note that its content is not interpreted
+  by the verifier.
+- Test reserved field of Sparing Table.
+- The overall file body CRC calculation algorithm is changed in such
+  a way that its value is now independent of the order in which files
+  and directories appear on a medium.
+- Eliminated all 'level 4' compiler warnings (except 3 in udf_scsi.dll).
+- Eliminated ENDIAN_SWAP definition, removed ENDIAN_SWAP from Makefile.uct.
+  Dynamic endian determination and automatic swap now.
+- Added header file dependencies to Makefile files.
+- As we can expect to see more bigger media, the default message limit
+  for a specific error or warning message is reduced from 100 to 20
+  The message limit can be increased using the -mlimit option.
+- Implemented simple read cache. Can be disabled using new
+  "-nocache" option, e.g. for media with linkblocks mapped in
+  volume space like CD-R or media with many read errors.
+- Improved REAME.TXT and FAQ.TXT explanation and verifier -help output.
+- Reorganized bin/* directories. These may now optionally contain make*.log
+  files that show the exact test and compile platform data.
+- A wnaspi32.dll ASPI driver for WinXP, Win2k and WinNT is now bundled
+  with the UDF Verifier by courtesy of Ahead Software.
+  For details and conditions of use, see the file bin/win32/ASPI.TXT.
+- Added NetBSD scsi/Atapi support, but no NetBSD binaries in delivery
+  (customize Makefele.uct to #define NETBSD).
+
+For Linux and NETBSD:
+- The -scsi option does now also accept any device path (e.g. /dev/xyz)
+  as an argument besides the usual <h>:<s> drive identification.
+- "-showscsi" and "-scsi <h>:<s>" only test the following devices:
+  /dev/sg*, /dev/scd*, /dev/sd*, /dev/hd*, /dev/loop*, /dev/cd*
+  (was: only dev/sg[0-128] and if none found, then /dev/sg[a-z]).
+  Note that "-scsi <device path>" has no restrictions.
+
+For Irix 64:
+- Can verify from drive, but does not use scsi/Atapi.
+  It handles a device in the same way as a file, e.g.: udf_test /dev/abc.
+  (this was introduced in rel 1.0r2 already, but forgot to mention).
+
+Corrections:
+
+- Embedded EAs are allowed for the Metadata File, only an EA file is not allowed.
+- Check overflow for descriptorCRCLength, it is an Uint16 and can therefore
+  only cover e.g. 32 blocks of 2k !!! Problem for big ST and maybe SBD.
+  Nothing in the UDF spec about what to do. Implemented the UDF 2.50 errata
+  DCN-5108 that requires a value of MAX_UINT16 in this case.
+- Corrected TagLocation test of embedded FIDS in a strategy 4096 File Entry.
+- Changed some "Overruled Package Length" warning messages into an
+  informal note.
+- Correct UDF spec references in some cases where section numbers changed
+  in newer UDF revisions.
+- Change "Warning:" to "Note:" for final message on handling undefined Timezones.
+- limit 'last valid block (N) correction' till first valid AVDP at N-256.
+- VAT FE EAa and stream directory is not disallowed by UDF spec.
+  Verifier shows now: A note for embedded EAs, a warning for EA file and
+  an error for a stream directory in VAT EFE.
+- Bigger default read buffer for -inspect_image and -write_image
+
+Known problems:
+
+- Not all UDF 2.50 specific tests are already implemented
+- For drives with multiple logical units, only logical unit
+  0 can be accessed.
+- Strategy 4096 blocks may be flagged as unused blocks.
+- For FE, Access, Modification and Attribute (Date and) Time,
+  do not (yet) compare to File Times EA Creation Time, if any.
+- Space Table with strategy type 4096 not implemented
+
+------------
+
+todo list for verifier implementation:
+(incomplete list)
+
+- complete UDF 2.50 testing
+- no Freed Space Bitmap/Table for access type 4.
+- timeout and timeout option for the time needed to determine
+  the lastvalidblock value (in case of read errors).
+- Unallocated Space Descriptor checks
+- verify last stream restrictions
+- finish Volume Structure descriptors
+- verify if unused VAT entry is #FFFFFFFF (warn or error??)
+- UniqueID mapping table tests
+- symbolic link expansion
+- finish Volume Structure descriptors
+- Timestamps in Extended Attributes
+- Space Table with strategy type 4096
+- permissions
+- ...
+
+Please inform me of errors, etc. as soon as possible
+in order to improve the verifier. Also in the case of
+wrong or unclear UDF and ECMA references in messages.
+
+Regards, Gerrit Scholl.
+
+         Philips Research
+         G.J. Scholl, WDC 11
+         Prof. Holstlaan 4
+         5656 AA Eindhoven
+         The Netherlands
+
+e-mail:   Gerrit.Scholl@philips.com
+
+___________________________________________________________
+

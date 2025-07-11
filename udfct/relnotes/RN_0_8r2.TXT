@@ -1,0 +1,65 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999, 2000
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+---------------------------------------------------------------------------
+November 17, 2000
+
+Release notes for UDF verifier release 0.8r2
+
+Changes since release 0.8r1
+
+main changes:
+
+- Full File Link Count verification.
+- Error and warning count in final status report.
+  In non-UDF warnings, changed "Warning:" to "Note:"
+
+Corrections:
+- For UDF 1.50 and lower:
+  FID ICB field does not contain a UDFUniqueID,
+  it was introduced in UDF 2.00.
+- For UDF 2.00 and higher:
+  No more compare of UDFUniqueID when verifiying if the
+  parent FID correctly identifies the appropriate parent.
+  Waiting for correct interpretation of the UDF spec about
+  how the UDFUniqueID of a parent FID shall be set.
+- proper warning instead of assert for unexpected
+  File Entry while Volume Descriptor expected.
+- timestamp ECMA reference corrections.
+- bug repair for 'partition out of range error message'.
+
+todo list for verifier implementation (incomplete list)
+(at least the head of this list is in priority order)
+
+- UniqueID testing by cross reference of all FID/FE
+- UniqueID mapping table tests
+- verify last stream restrictions
+- symbolic link expansion
+- finish FID and FE testing
+- finish Volume Structure descriptors
+- Timestamps in Extended Attributes
+- Unallocated Space Descriptor checks
+- Space Table with strategy type 4096
+- permissions
+- finish UDF 2.01 tests
+- ...
+
+Please inform me of errors, etc. as soon as possible
+in order to improve the verifier. Also in the case of
+wrong or unclear UDF and ECMA references in messages.
+
+Regards, Gerrit Scholl
+
+          Philips Research, G.J. Scholl
+          Prof. Holstlaan 4, building WL11
+          5656 AA Eindhoven
+          The Netherlands
+
+e-mail:   Gerrit.Scholl@philips.com
+
+___________________________________________________________
+

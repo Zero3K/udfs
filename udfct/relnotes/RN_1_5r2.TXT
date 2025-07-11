@@ -1,0 +1,81 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999-2006
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+--------------------------------------------------------------------------
+November 30, 2006
+
+Release notes for UDF verifier release 1.5r2
+
+Changes since previous release 1.5r0
+
+New/modified UDF tests:
+
+- ...
+
+Further changes/corrections:
+
+- Crash repair if Allocation Unit Size or Alignment Unit Size have value zero.
+- MAX VOLUME SIZE increased from 512 GB to 1 TB
+- Reduce output and skip of unrecorded gaps in case of many read errors
+  for -inspect_image and -write_image options, avoiding huge log files and elaps times.
+
+Implementation changes/corrections/remarks:
+
+- The separate module udf_scsi.dll was removed. The scsi stuff is now linked directly
+  into udf_test.exe now (udf_test.exe still uses wnaspi32.dll).
+- The executable generated on Windows XP was also tested on Windows Vista.
+- Apart from the Unix Makefiles, also Visual Studio 2005 solution and project files are
+  included in the delivery packet now (also suitable for Visual Studio Express Edition).
+  Start Visual Studio using 'Solution file' src/udfct.sln, then set "udf_tester" as startup
+  project.
+
+- Set Visual Studio compiler flag to detect 64-bit compatibility issues and repaired all
+  consequent compiler warnings.
+- consequent use of uctExit() [instead of exit() or uctFatalExit()].
+- include uct_core.h in scsiapi.c and use UCTASSERT(), remove LOCALASSERT().
+- remove unused dead code
+
+Known problems:
+
+- Scsi support only accesses logical unit 0 of a drive.
+- Strategy 4096 blocks may be flagged as unused blocks.
+- For FE, Access, Modification and Attribute Date and Time,
+  no compare (yet) to File Times EA Creation Time, if any.
+
+------------
+
+todo list for verifier implementation:
+(incomplete list)
+
+- double check UDF 2.50 errata tests
+- complete UDF 2.60 testing and test on BD drives
+- no Freed Space Bitmap/Table for access type 4.
+- verify Previous VAT ICB location
+- UniqueID mapping table tests
+- symbolic link expansion
+- Timestamps in Extended Attributes
+- permissions
+- ...
+- check DCNs: 5157, 5163, 5166 ??
+
+
+Please inform me of errors, missing tests, etc. as soon as
+possible in order to improve the verifier. Also in the case
+of wrong or unclear UDF and ECMA references in messages.
+
+Gerrit Scholl.
+
+address:  Philips Research Laboratories
+          G.J. Scholl, HTC31 1.046
+          High Tech Campus 31
+          5656 AE  Eindhoven
+          The Netherlands
+
+e-mail:   Gerrit.Scholl@philips.com
+
+___________________________________________________________
+

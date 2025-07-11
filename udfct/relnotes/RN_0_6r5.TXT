@@ -1,0 +1,58 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+---------------------------------------------------------------------------
+December 21, 1999
+
+Release notes for UDF verifier release 0.6r5
+
+Changes since release 0.6r2
+
+- Handle descriptors longer than the block size
+- Removed warning in case last part of an Allocation Descriptors area
+  is not used. Added "unused bytes" info in informal message instead.
+- Continue verifying after all EntityID errors.
+- Improved sparing implementation. Instead of a separate read for each
+  packet, contiguous packets that have no defects are read at once.
+  This may reduce the output of media with sparing by thousands of lines.
+  In the previous verifier release each packet read was logged.
+- First Unallocated and Freed Space descriptor checks
+- Improved memory use efficiency.
+- Force fake read for unrecorded extents.
+- new option: -filecrc. Calculates 16-BIT file crc for FE file bodies.
+  File CRC values for special file types (e.g. symbolic links)
+  may not yet be correct.
+
+Todo list for verifier implementation (incomplete list)
+(at least the head of this list is in priority order)
+
+- Read Extended Attributes
+- streams
+- finish FID and FE testing
+- File Link Count
+- symbolic links
+- Timestamps
+- Full UniqueID testing
+- allocated Space checks
+- UDF 2.01
+- ...
+
+Please inform me of errors, etc. as soon as possible
+in order to improve the verifier. Also in the case of
+wrong or unclear UDF and ECMA references in messages.
+
+Regards, Gerrit Scholl
+
+          Philips Research, G.J. Scholl
+          Prof. Holstlaan 4, building WL11
+          5656 AA Eindhoven
+          The Netherlands
+
+e-mail:   Gerrit.Scholl@philips.com
+
+___________________________________________________________
+

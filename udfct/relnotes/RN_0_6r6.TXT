@@ -1,0 +1,59 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+---------------------------------------------------------------------------
+Jan 7, 2000
+
+Release notes for UDF verifier release 0.6r6
+
+Changes since release 0.6r5
+
+new tests:
+- Check ambiguous file identifiers.
+
+corrections:
+- "FID tag spans block boundary" test for UDF 2.00 and higher only.
+- continue verify after "packet length error" if packet length is not zero.
+- Full path for file CRC logging and CRC in decimal and hex format.
+  New format: File CRC <decimal crc>: <full path>,0x<hex crc>\n"
+  Last part of format like in Osta test discs FILECRC.TXT files.
+
+changes:
+- Unicode names: Print '/' char as #002F and use of '/' char
+  as path element separator in path names instead of '+' char.
+  Long full path names are no longer printed on continuation lines
+  but as one long line.
+
+Todo list for verifier implementation (incomplete list)
+(at least the head of this list is in priority order)
+
+- Extended Attributes structures
+- streams
+- finish FID and FE testing
+- File Link Count
+- symbolic links
+- Timestamps
+- Full UniqueID testing
+- allocated Space checks
+- UDF 2.01
+- ...
+
+Please inform me of errors, etc. as soon as possible
+in order to improve the verifier. Also in the case of
+wrong or unclear UDF and ECMA references in messages.
+
+Regards, Gerrit Scholl
+
+          Philips Research, G.J. Scholl
+          Prof. Holstlaan 4, building WL11
+          5656 AA Eindhoven
+          The Netherlands
+
+e-mail:   Gerrit.Scholl@philips.com
+
+___________________________________________________________
+

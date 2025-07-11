@@ -1,0 +1,72 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+---------------------------------------------------------------------------
+October 20, 1999
+
+Release notes for UDF verifier release 0.5r1
+
+Changes since previous release 0.4r3
+
+- Strategy 4096, first implementation.
+- continue verifying after tag location error.
+- Inconsistent use of "block" and "sector" in messages:
+  changed all "sector" to "block".
+- informal allocation descriptors log: do not count AD
+  that points to next extent of ADs
+
+- new option: -write_image <name>
+  Write and inspect image. Writes output image file of input medium,
+  block address 0 till 'last valid block' included.
+  Output log shows position of all possible AVDP and VAT File Entry
+  descriptors (check on tag id, tag checksum and FE file type only).
+  Ignores all read error blocks at the end of an image and writes all
+  other read error blocks (like unrecorded blocks, reserved tracks,
+  etc.) as blank blocks (all #00 bytes).
+  Usage example:
+  udf_test -scsi 2:2 -write_image OSTA_V1_D6.img
+  For more details see: udf_test -help
+
+- new option: -inspect_image <start>
+  Same as -write_image, but no image file output.
+  Extra is definition of start address, which is always
+  0 for -write_image. This allows for inspection of a
+  part of the image only.
+
+Not yet included in the verifier (incomplete list) :
+
+- handle descriptors longer than the block size.
+- Sparing
+- File Link Count
+- Extended Attributes
+- Timestamps
+- Full UniqueID testing
+- allocated Space checks
+- streams
+- ...
+
+First foreseen additions:
+
+- descriptors longer than the block size.
+- Sparing
+- Complete the tests for FID and File Entry.
+
+Please inform me of errors, etc. as soon as possible
+in order to improve the verifier. Also in the case of
+wrong or unclear UDF and ECMA references in messages.
+
+Regards, Gerrit Scholl
+
+          Philips Research, G.J. Scholl
+          Prof. Holstlaan 4, building WL11
+          5656 AA Eindhoven
+          The Netherlands
+
+e-mail:   Gerrit.Scholl@philips.com
+
+___________________________________________________________
+

@@ -1,0 +1,78 @@
+---------------------------------------------------------------------------
+ Copyright (c) KONINKLIJKE PHILIPS ELECTRONICS N.V. 1999, 2000
+
+ All rights are reserved. Reproduction in whole or in part is
+ prohibited without the written consent of the copyright owner
+
+ Author(s)   : Gerrit Scholl
+---------------------------------------------------------------------------
+October 12, 2000
+
+Release notes for UDF verifier release 0.8r1
+
+Changes since release 0.7r7
+
+main changes:
+
+- Timestamp verification (not yet in Extended Attributes).
+- more directory listing info:
+  . File Link Count
+  . modification time (UCT or local time)
+  . file size.
+  . full info for <parent FID> entry.
+  see 'udf_test -help' output for details.
+- new -localtime option to show local time and time zone instead of UCT.
+- more FID and FID/File Entry consistency tests.
+- more stream restrictions tests.
+- show FID file identifier with all FID messages
+- Check Space Tables partition allocation,
+  not yet: Space Table with strategy type 4096.
+- more drive track information logging
+- new Linux device support, this caused a small
+  change in the device abstraction interface.
+  (moved Device.impUse.MediumInfo to Device.MediumInfo).
+  Mind NEW definition of: PLATFORM = -DLINUX
+  for Linux platforms, see next point.
+- all Unix-like Makefile customizing concentrated in
+  one file: udf_tester/Makefile.uct. This file is
+  included by all other Makefile files.
+  Tests performed on Linux and Sun.
+
+Corrections:
+- read Reserve VDS after error in Main VDS
+- some basic descriptor tag errors were not printed, corrected.
+- inspect_image summary bug repair
+- Tag Checksum error is not always fatal
+- single block read retry for medium read errors.
+
+todo list for verifier implementation (incomplete list)
+(at least the head of this list is in priority order)
+
+- verify last stream restrictions
+- File Link Count for non directory FEs
+- UniqueID testing
+- symbolic link expansion
+- finish FID and FE testing
+- finish Volume Structure descriptors
+- Timestamps in Extended Attributes
+- Unallocated Space Descriptor checks
+- Space Table with strategy type 4096
+- permissions
+- finish UDF 2.01 tests
+- ...
+
+Please inform me of errors, etc. as soon as possible
+in order to improve the verifier. Also in the case of
+wrong or unclear UDF and ECMA references in messages.
+
+Regards, Gerrit Scholl
+
+          Philips Research, G.J. Scholl
+          Prof. Holstlaan 4, building WL11
+          5656 AA Eindhoven
+          The Netherlands
+
+e-mail:   Gerrit.Scholl@philips.com
+
+___________________________________________________________
+
