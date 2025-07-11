@@ -6,12 +6,14 @@ list(APPEND SOURCE
     udfs.c
     create.c
     read.c
+    write.c
     dirctrl.c
     fileinfo.c
     volinfo.c
     fsctrl.c
     cleanup.c
     close.c
+    udfct_windows.c
     udfsprocs.h)
 
 # Include UDFCT core components needed for kernel mode

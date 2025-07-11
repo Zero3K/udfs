@@ -32,10 +32,18 @@ DriverEntry(
     InitializeListHead(&UdfsData.VcbList);
     ExInitializeResourceLite(&UdfsData.GlobalResource);
     
+    /* Initialize UDFCT subsystem */
+    Status = UdfsInitializeUdfctSubsystem();
+    if (!NT_SUCCESS(Status)) {
+        ExDeleteResourceLite(&UdfsData.GlobalResource);
+        return Status;
+    }
+    
     /* Set up dispatch table */
     DriverObject->MajorFunction[IRP_MJ_CREATE] = UdfsDispatch;
     DriverObject->MajorFunction[IRP_MJ_CLOSE] = UdfsDispatch;
     DriverObject->MajorFunction[IRP_MJ_READ] = UdfsDispatch;
+    DriverObject->MajorFunction[IRP_MJ_WRITE] = UdfsDispatch;  /* Add write support */
     DriverObject->MajorFunction[IRP_MJ_QUERY_INFORMATION] = UdfsDispatch;
     DriverObject->MajorFunction[IRP_MJ_SET_INFORMATION] = UdfsDispatch;
     DriverObject->MajorFunction[IRP_MJ_QUERY_VOLUME_INFORMATION] = UdfsDispatch;
@@ -88,6 +96,9 @@ UdfsUnload(
         IoDeleteDevice(UdfsData.FileSystemDeviceObject);
     }
     
+    /* Clean up UDFCT subsystem */
+    UdfsCleanupUdfctSubsystem();
+    
     /* Clean up global resources */
     ExDeleteResourceLite(&UdfsData.GlobalResource);
 }
@@ -132,6 +143,10 @@ UdfsDispatch(
             
         case IRP_MJ_READ:
             Status = UdfsRead(DeviceObject, Irp);
+            break;
+            
+        case IRP_MJ_WRITE:
+            Status = UdfsWrite(DeviceObject, Irp);
             break;
             
         case IRP_MJ_QUERY_INFORMATION:

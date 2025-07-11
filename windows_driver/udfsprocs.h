@@ -19,37 +19,66 @@
 
 /* UDFCT core headers - adapted for kernel mode */
 #ifdef KERNEL_MODE
+/* Windows kernel mode UDFCT adaptation */
 #define printf DbgPrint
 #define malloc(size) ExAllocatePoolWithTag(PagedPool, size, 'UDFS')
 #define free(ptr) ExFreePoolWithTag(ptr, 'UDFS')
+#define calloc(count, size) ExAllocatePoolWithTag(PagedPool, (count)*(size), 'UDFS')
+#define realloc(ptr, size) UdfsReallocatePool(ptr, size)
 #define FILE void
+#define sprintf swprintf
+#define SEEK_SET 0
+#define SEEK_CUR 1
+#define SEEK_END 2
 
-/* Define basic UDFCT types for kernel mode */
-typedef struct _UdfMountContext {
-    ULONG Signature;
+/* Forward declare types before including UDFCT headers */
+typedef struct Device Device;
+typedef struct UdfMountContext UdfMountContext;
+typedef struct Node Node;
+
+/* Include core UDFCT headers with adaptations */
+#include "../udfct/uct_core/mytypes.h"
+#include "../udfct/uct_core/general.h"
+#include "../udfct/uct_core/udfstruct.h"
+#include "../udfct/uct_core/uctdata.h"
+#include "../udfct/uct_core/uctnodes.h"
+#include "../udfct/uct_core/uctstatus.h"
+#include "../udfct/uct_core/uctfiles.h"
+#include "../udfct/uct_core/uctgeneral.h"
+#include "../udfct/uct_core/uctallocation.h"
+#include "../udfct/uct_core/uctverify.h"
+#include "../udfct/uct_core/uctendian.h"
+#include "../udfct/uct_core/unicode.h"
+#include "../udfct/uct_core/device.h"
+
+/* Windows kernel mode device adaptation */
+typedef struct _WindowsDeviceAdapter {
     PDEVICE_OBJECT TargetDevice;
     ULONG SectorSize;
-    /* Additional UDFCT context would go here */
-} UdfMountContext;
+    LARGE_INTEGER DeviceSize;
+    Device *uctDevice;
+} WindowsDeviceAdapter;
 
-typedef struct _SessionContext {
-    ULONG SessionNumber;
-    ULONG StartSector;
-    ULONG SectorCount;
-} SessionContext;
+/* Memory allocation wrapper for kernel mode */
+PVOID UdfsReallocatePool(PVOID OldBuffer, SIZE_T NewSize);
 
-typedef struct _Node {
-    ULONG NodeType;
-    LARGE_INTEGER FileSize;
-    ULONG FileAttributes;
-    /* Additional UDFCT node data would go here */
-} Node;
+/* Windows device interface functions */
+Uint32 WindowsDeviceReadBlock(void *impUse, Uint32 blockSize, 
+                             Uint32 firstBlock, Uint32 nrOfBlocks, Byte *buffer);
+Uint32 WindowsDeviceWriteBlock(void *impUse, Uint32 blockSize, 
+                              Uint32 firstBlock, Uint32 nrOfBlocks, Byte *buffer);
+void WindowsDeviceCloseAndFree(void *impUse);
+BlockState WindowsDeviceGetBlockState(void *impUse, Uint32 blockNr);
+
+/* UDFCT initialization for Windows */
+NTSTATUS UdfsInitializeUdfctDevice(PDEVICE_OBJECT TargetDevice, Device **uctDevice);
 
 #else
-#include "uct_core.h"
-#include "uctfiles.h"
-#include "uctgeneral.h"
-#include "unicode.h"
+/* User mode - include original UDFCT headers */
+#include "../udfct/uct_core/uct_core.h"
+#include "../udfct/uct_core/uctfiles.h"
+#include "../udfct/uct_core/uctgeneral.h"
+#include "../udfct/uct_core/unicode.h"
 #endif
 
 /* Driver tag for memory allocations */
@@ -70,8 +99,7 @@ typedef struct _UDFS_VCB {
     PVPB Vpb;
     
     /* UDF specific data from UDFCT */
-    UdfMountContext *MountContext;  /* UDFCT mount context */
-    SessionContext *SessionContext; /* UDFCT session context */
+    UdfMountContext *MountContext;  /* Full UDFCT mount context */
     
     /* Volume characteristics */
     ULONG SectorSize;
@@ -185,6 +213,13 @@ UdfsRead(
     IN PIRP Irp
     );
 
+/* Write operations (write.c) */
+NTSTATUS
+UdfsWrite(
+    IN PDEVICE_OBJECT DeviceObject,
+    IN PIRP Irp
+    );
+
 /* Directory control (dirctrl.c) */
 NTSTATUS
 UdfsDirectoryControl(
@@ -286,6 +321,39 @@ UdfsReadUdfSectors(
     IN ULONG StartSector,
     IN ULONG SectorCount,
     OUT PVOID Buffer
+    );
+
+/* UDFCT Windows adaptation functions (udfct_windows.c) */
+NTSTATUS UdfsInitializeUdfctSubsystem(void);
+VOID UdfsCleanupUdfctSubsystem(void);
+NTSTATUS UdfsCreateUdfctMountContext(PDEVICE_OBJECT TargetDevice, UdfMountContext **MountContext);
+VOID UdfsCleanupUdfctMountContext(UdfMountContext *MountContext);
+PVOID UdfsReallocatePool(PVOID OldBuffer, SIZE_T NewSize);
+NTSTATUS UdfsInitializeUdfctDevice(PDEVICE_OBJECT TargetDevice, Device **uctDevice);
+
+/* Write operation helpers (write.c) */
+NTSTATUS
+UdfsWriteFileData(
+    IN PUDFS_FCB Fcb,
+    IN LARGE_INTEGER FileOffset,
+    IN ULONG Length,
+    IN PVOID Buffer
+    );
+
+NTSTATUS
+UdfsAllocateFileSpace(
+    IN PUDFS_FCB Fcb,
+    IN ULONGLONG NewFileSize
+    );
+
+BOOLEAN
+UdfsWriteBlockToPartition(
+    IN UdfMountContext *mc,
+    IN PVOID Buffer,
+    IN UINT16 PartitionRef,
+    IN UINT32 LogicalBlockNr,
+    IN UINT32 BlockCount,
+    IN UINT32 BlockSize
     );
 
 /* File system control helpers (fsctrl.c) */

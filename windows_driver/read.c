@@ -106,24 +106,111 @@ UdfsReadFileData(
     )
 {
     NTSTATUS Status;
+    UdfMountContext *mc;
+    Node *fileNode;
+    UdfAllocationList *allocList;
+    UdfAllocationItem *allocItem;
+    ULONG bytesRead = 0;
+    ULONG currentOffset;
+    ULONG remainingBytes;
+    PUCHAR outputBuffer;
+    PUDFS_VCB vcb;
     
-    /* This is where we would use UDFCT to read the actual file data */
-    /* For now, we'll just zero the buffer as a placeholder */
+    if (!Fcb || !Fcb->UdfNode || !Buffer) {
+        return STATUS_INVALID_PARAMETER;
+    }
     
-    UNREFERENCED_PARAMETER(Fcb);
-    UNREFERENCED_PARAMETER(FileOffset);
+    vcb = (PUDFS_VCB)Fcb->Header.Vcb;
+    mc = vcb->MountContext;
+    fileNode = Fcb->UdfNode;
     
-    /* In a real implementation, this would:
-     * 1. Use UDFCT to locate the file's allocation descriptors
-     * 2. Map logical blocks to physical sectors
-     * 3. Read the data from the underlying device
-     * 4. Handle different allocation types (short_ad, long_ad, etc.)
-     * 5. Deal with file fragmentation
-     */
+    /* Use UDFCT to get the file's allocation list */
+    allocList = &fileNode->al;
+    if (!allocList) {
+        return STATUS_FILE_INVALID;
+    }
+    
+    currentOffset = FileOffset.LowPart;
+    remainingBytes = Length;
+    outputBuffer = (PUCHAR)Buffer;
     
     __try {
-        RtlZeroMemory(Buffer, Length);
+        /* Walk through the allocation descriptors to read file data */
+        allocItem = allocList->head;
+        
+        while (allocItem && remainingBytes > 0) {
+            AnyAllocationDescriptor *aad = &allocItem->aad;
+            Uint32 extentLength = aad->anyAd.extentLength & UDF_EXTENT_LENGTH_MASK;
+            Uint32 extentType = (aad->anyAd.extentLength >> 30) & 0x3;
+            Uint32 logicalBlockNr;
+            Uint16 partRefNumber;
+            ULONG bytesToRead;
+            ULONG blockOffset;
+            ULONG blockSize = mc->device->mediumInfo.blockSize;
+            PVOID blockBuffer;
+            
+            /* Skip if this is not a recorded extent */
+            if (extentType != ADEL_RECORDED_AND_ALLOCATED) {
+                allocItem = allocItem->next;
+                continue;
+            }
+            
+            /* Get the location of this extent */
+            if (!udfGetLocation(aad, allocList->adType, 
+                               allocList->shortPartRefNumber,
+                               &partRefNumber, &logicalBlockNr)) {
+                allocItem = allocItem->next;
+                continue;
+            }
+            
+            /* Check if our read offset falls within this extent */
+            if (currentOffset >= extentLength) {
+                currentOffset -= extentLength;
+                allocItem = allocItem->next;
+                continue;
+            }
+            
+            /* Calculate how much to read from this extent */
+            bytesToRead = min(remainingBytes, extentLength - currentOffset);
+            blockOffset = currentOffset % blockSize;
+            
+            /* Allocate temporary buffer for block-aligned reads */
+            blockBuffer = ExAllocatePoolWithTag(PagedPool, blockSize, 'UDFS');
+            if (!blockBuffer) {
+                Status = STATUS_INSUFFICIENT_RESOURCES;
+                break;
+            }
+            
+            /* Read the block(s) containing our data */
+            while (bytesToRead > 0 && remainingBytes > 0) {
+                ULONG blockNumber = logicalBlockNr + (currentOffset / blockSize);
+                ULONG bytesFromBlock = min(bytesToRead, blockSize - blockOffset);
+                
+                /* Read the block using UDFCT */
+                if (readBlocksFromPartition(mc, blockBuffer, partRefNumber, 
+                                           blockNumber, 1) != 1) {
+                    ExFreePoolWithTag(blockBuffer, 'UDFS');
+                    return STATUS_DEVICE_DATA_ERROR;
+                }
+                
+                /* Copy the relevant portion to output buffer */
+                RtlCopyMemory(outputBuffer, (PUCHAR)blockBuffer + blockOffset, bytesFromBlock);
+                
+                outputBuffer += bytesFromBlock;
+                bytesRead += bytesFromBlock;
+                bytesToRead -= bytesFromBlock;
+                remainingBytes -= bytesFromBlock;
+                currentOffset += bytesFromBlock;
+                blockOffset = 0; /* Only first block may have offset */
+            }
+            
+            ExFreePoolWithTag(blockBuffer, 'UDFS');
+            currentOffset = 0; /* Reset for next extent */
+            allocItem = allocItem->next;
+        }
+        
         Status = STATUS_SUCCESS;
+        
     } __except(EXCEPTION_EXECUTE_HANDLER) {
         Status = STATUS_INVALID_USER_BUFFER;
     }
