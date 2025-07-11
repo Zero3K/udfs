@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <time.h>
+#include <stdio.h>
 
 /* Internal structure for mounted volume */
 struct udfs_volume {
@@ -78,6 +79,164 @@ static void debug_print(const char *format, ...) {
 /*
  * Internal helper functions
  */
+
+/* Simplified image device implementation for demonstration
+ * This is a basic version that shows the structure works
+ * A full implementation would use UDFCT's mfile interface
+ */
+typedef struct {
+    FILE *file;
+    uint64_t file_size;
+    uint32_t block_size;
+} SimpleImageImpUse;
+
+/* Simple image device read blocks function */
+static Uint32 simpleImageReadBlocks(void *impUse, Uint32 blockSize, 
+                                    Uint32 firstBlock, Uint32 nrOfBlocks, Byte *buffer) {
+    SimpleImageImpUse *imgUse = (SimpleImageImpUse*)impUse;
+    if (!imgUse || !imgUse->file || !buffer) {
+        return 0;
+    }
+    
+    uint64_t offset = (uint64_t)firstBlock * blockSize;
+    if (fseeko(imgUse->file, offset, SEEK_SET) != 0) {
+        return 0;
+    }
+    
+    size_t bytes_to_read = (size_t)nrOfBlocks * blockSize;
+    size_t bytes_read = fread(buffer, 1, bytes_to_read, imgUse->file);
+    
+    return (Uint32)(bytes_read / blockSize);
+}
+
+/* Simple image device get block state function */
+static BlockState simpleImageGetBlockState(void *impUse, Uint32 blockNr) {
+    SimpleImageImpUse *imgUse = (SimpleImageImpUse*)impUse;
+    if (!imgUse || !imgUse->file) {
+        return BSTATE_ERROR;
+    }
+    
+    uint64_t offset = (uint64_t)blockNr * imgUse->block_size;
+    if (offset >= imgUse->file_size) {
+        return BSTATE_UNRECORDED;
+    }
+    
+    return BSTATE_READABLE;
+}
+
+/* Simple image device cleanup function */
+static void simpleImageCloseAndFreeImpUse(void *impUse) {
+    if (impUse) {
+        SimpleImageImpUse *imgUse = (SimpleImageImpUse*)impUse;
+        if (imgUse->file) {
+            fclose(imgUse->file);
+        }
+        free(imgUse);
+    }
+}
+
+/* Create a Device for an image file - simplified working version */
+static Device* create_image_device(const char *image_path) {
+    Device *device = NULL;
+    SimpleImageImpUse *imageImpUse = NULL;
+    FILE *file = NULL;
+    
+    debug_print("Creating image device for: %s", image_path);
+    
+    /* Open the image file */
+    file = fopen(image_path, "rb");
+    if (!file) {
+        debug_print("Failed to open image file: %s", image_path);
+        return NULL;
+    }
+    
+    /* Get file size */
+    if (fseeko(file, 0, SEEK_END) != 0) {
+        debug_print("Failed to seek to end of file");
+        fclose(file);
+        return NULL;
+    }
+    
+    uint64_t file_size = ftello(file);
+    if (file_size <= 0) {
+        debug_print("Invalid file size: %llu", (unsigned long long)file_size);
+        fclose(file);
+        return NULL;
+    }
+    
+    if (fseeko(file, 0, SEEK_SET) != 0) {
+        debug_print("Failed to seek to beginning of file");
+        fclose(file);
+        return NULL;
+    }
+    
+    /* Allocate device structure */
+    device = (Device*)calloc(1, sizeof(Device));
+    if (!device) {
+        fclose(file);
+        return NULL;
+    }
+    
+    /* Allocate image implementation structure */
+    imageImpUse = (SimpleImageImpUse*)calloc(1, sizeof(SimpleImageImpUse));
+    if (!imageImpUse) {
+        free(device);
+        fclose(file);
+        return NULL;
+    }
+    
+    /* Initialize image implementation */
+    imageImpUse->file = file;
+    imageImpUse->file_size = file_size;
+    imageImpUse->block_size = 2048;  /* Default UDF block size */
+    
+    /* Initialize device structure */
+    device->impUse = imageImpUse;
+    device->getBlockState = simpleImageGetBlockState;
+    device->readBlock = simpleImageReadBlocks;
+    device->closeAndFreeImpUse = simpleImageCloseAndFreeImpUse;
+    
+    /* Initialize medium info */
+    clearMediumInfo(&device->mediumInfo);
+    device->mediumInfo.blockSize = imageImpUse->block_size;
+    device->mediumInfo.lastValidBlockNr = (Uint32)((file_size / imageImpUse->block_size) - 1);
+    device->mediumInfo.lastRecordedBlockNr = device->mediumInfo.lastValidBlockNr;
+    device->mediumInfo.writabilityType = MTYPE_WR_UNKNOWN;
+    device->mediumInfo.sequentialType = MTYPE_SE_UNKNOWN; 
+    device->mediumInfo.closedType = MTYPE_CL_UNKNOWN;
+    device->mediumInfo.numberOfSessions = 1;
+    device->mediumInfo.sessionStartBlocks = NULL;  /* Will be allocated by addSessionToMediumInfo */
+    device->mediumInfo.verifySession = 1;
+    
+    /* Add session 0 starting at block 0 */
+    addSessionToMediumInfo(&device->mediumInfo, 0);
+    
+    debug_print("Created image device: %llu bytes, %u blocks", 
+                (unsigned long long)file_size, device->mediumInfo.lastValidBlockNr + 1);
+    
+    return device;
+}
+
+/* Create and initialize UdfMountContext - following UDFCT's pattern */
+static UdfMountContext* create_mount_context(Device *device) {
+    UdfMountContext *mc = NULL;
+    
+    if (!device) {
+        return NULL;
+    }
+    
+    /* Allocate mount context using UDFCT's macro */
+    mc = NEWSTRUCT(UdfMountContext, 1);
+    if (!mc) {
+        return NULL;
+    }
+    
+    /* Initialize mount context */
+    mc->device = device;
+    mc->virtualPref = mc->sparablePref = mc->metadataPref = PREF_PARTITION_NOT_FOUND;
+    
+    return mc;
+}
 
 /* Convert UDFCT timestamp to Unix timestamp */
 static uint64_t timestamp_to_unix(const Timestamp *ts) {
@@ -157,24 +316,80 @@ udfs_result_t udfs_mount_image(const char *image_path, udfs_volume_t **volume) {
         return UDFS_ERROR_NO_MEMORY;
     }
     
-    /* Try to open the image file as a device using UDFCT selectDevice mechanism */
-    Device *device = NULL;
-    MediumInfo mediumInfo = {0};  /* Initialize medium info */
+    /* Create device for image file */
+    Device *device = create_image_device(image_path);
+    if (!device) {
+        debug_print("Failed to create image device for: %s", image_path);
+        free(vol->source_path);
+        free(vol);
+        return UDFS_ERROR_NOT_SUPPORTED;  /* Still not implemented */
+    }
     
-    /* This is a simplified approach - in full implementation we'd use selectDevice() */
-    /* For now, we'll assume this fails and return not supported */
-    debug_print("Device opening not yet implemented");
-    free(vol->source_path);
-    free(vol);
-    return UDFS_ERROR_NOT_SUPPORTED;
+    vol->device = device;
     
-    /* TODO: Complete implementation following UDFCT pattern:
-     * 1. Use selectDevice() or equivalent to open image file
-     * 2. Initialize medium info with finishMediumInfo() and initTheMediumInfo()
-     * 3. Allocate UdfMountContext with NEWSTRUCT(UdfMountContext,1)
-     * 4. Call udfGetVolumeInformation(mc)
-     * 5. Call udfMountLogicalVolume(mc, &startTime)
-     */
+    /* Initialize medium info following UDFCT pattern */
+    if (!finishMediumInfo(&device->mediumInfo)) {
+        debug_print("Failed to finish medium info");
+        free(vol->source_path);
+        free(vol);
+        return UDFS_ERROR_NOT_UDF;
+    }
+    
+    if (!initTheMediumInfo(&device->mediumInfo)) {
+        debug_print("Failed to initialize medium info");
+        free(vol->source_path);
+        free(vol);
+        return UDFS_ERROR_NOT_UDF;
+    }
+    
+    /* Create mount context */
+    UdfMountContext *mc = create_mount_context(device);
+    if (!mc) {
+        debug_print("Failed to create mount context");
+        if (device && device->closeAndFreeImpUse) {
+            device->closeAndFreeImpUse(device->impUse);
+        }
+        free(device);
+        free(vol->source_path);
+        free(vol);
+        return UDFS_ERROR_NO_MEMORY;
+    }
+    
+    /* Get volume information */
+    if (!udfGetVolumeInformation(mc)) {
+        debug_print("Failed to get volume information");
+        udfUnmountLogicalVolume(mc);
+        if (device && device->closeAndFreeImpUse) {
+            device->closeAndFreeImpUse(device->impUse);
+        }
+        free(device);
+        free(vol->source_path);
+        free(vol);
+        return UDFS_ERROR_NOT_UDF;
+    }
+    
+    /* Mount logical volume */
+    Timestamp startTime;
+    bool timeOk = createCurrentTimeTimestamp(&startTime);
+    
+    if (!udfMountLogicalVolume(mc, timeOk ? &startTime : NULL)) {
+        debug_print("Failed to mount logical volume");
+        udfUnmountLogicalVolume(mc);
+        if (device && device->closeAndFreeImpUse) {
+            device->closeAndFreeImpUse(device->impUse);
+        }
+        free(device);
+        free(vol->source_path);
+        free(vol);
+        return UDFS_ERROR_NOT_UDF;
+    }
+    
+    vol->mc = mc;
+    vol->is_mounted = true;
+    
+    debug_print("Successfully mounted UDF volume");
+    *volume = vol;
+    return UDFS_OK;
 }
 
 udfs_result_t udfs_mount_device(const char *device_path, udfs_volume_t **volume) {
