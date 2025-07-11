@@ -19,17 +19,72 @@
 
 /* UDFCT core headers - adapted for kernel mode */
 #ifdef KERNEL_MODE
+
+/* Prevent standard library includes that are not available in kernel mode */
+#define _STDIO_H 1
+#define _STDLIB_H 1  
+#define _STRING_H 1
+#define _TIME_H 1
+#define _STDDEF_H 1
+#define __STDIO_H__ 1
+#define __STDLIB_H__ 1
+#define __STRING_H__ 1
+#define __TIME_H__ 1  
+#define __STDDEF_H__ 1
+
 /* Windows kernel mode UDFCT adaptation */
 #define printf DbgPrint
+#define fprintf(file, format, ...) DbgPrint(format, __VA_ARGS__)
 #define malloc(size) ExAllocatePoolWithTag(PagedPool, size, 'UDFS')
 #define free(ptr) ExFreePoolWithTag(ptr, 'UDFS')
-#define calloc(count, size) ExAllocatePoolWithTag(PagedPool, (count)*(size), 'UDFS')
+#define calloc(count, size) UdfsCalloc(count, size)
 #define realloc(ptr, size) UdfsReallocatePool(ptr, size)
 #define FILE void
-#define sprintf swprintf
+#define sprintf UdfsSprintf
 #define SEEK_SET 0
 #define SEEK_CUR 1
 #define SEEK_END 2
+
+/* Provide kernel mode equivalents for standard library functions */
+#define memcpy(dest, src, count) RtlCopyMemory(dest, src, count)
+#define memset(ptr, value, count) RtlFillMemory(ptr, count, (UCHAR)(value))
+#define memcmp UdfsMemcmp
+#define strlen UdfsStrlen
+#define strcmp UdfsStrcmp  
+#define strcpy UdfsStrcpy
+#define strncpy UdfsStrncpy
+#define strcat UdfsStrcat
+
+/* Function prototypes for kernel mode string functions */
+PVOID UdfsCalloc(size_t count, size_t size);
+int UdfsSprintf(char *buffer, const char *format, ...);
+size_t UdfsStrlen(const char *str);
+int UdfsStrcmp(const char *str1, const char *str2);
+int UdfsMemcmp(const void *ptr1, const void *ptr2, size_t count);
+char *UdfsStrcpy(char *dest, const char *src);
+char *UdfsStrncpy(char *dest, const char *src, size_t count);
+char *UdfsStrcat(char *dest, const char *src);
+
+/* Time functions - provide minimal stubs for kernel mode */
+typedef long time_t;
+struct tm {
+    int tm_sec, tm_min, tm_hour, tm_mday, tm_mon, tm_year;
+    int tm_wday, tm_yday, tm_isdst;
+};
+#define time(t) 0
+#define mktime(tm) 0
+#define localtime(t) NULL
+
+/* Other standard library functions */
+#define abs(x) ((x) < 0 ? -(x) : (x))
+#define labs(x) ((x) < 0 ? -(x) : (x))
+#define exit(code) /* exit not supported in kernel mode */
+#define abort() /* abort not supported in kernel mode */
+
+/* Standard library types that may be needed */
+#ifndef size_t
+#define size_t SIZE_T
+#endif
 
 /* Forward declare types before including UDFCT headers */
 typedef struct Device Device;

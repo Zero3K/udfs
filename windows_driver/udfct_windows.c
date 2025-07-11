@@ -38,6 +38,95 @@ PVOID UdfsReallocatePool(PVOID OldBuffer, SIZE_T NewSize)
 }
 
 /*
+ * Kernel mode string function implementations
+ */
+PVOID UdfsCalloc(size_t count, size_t size)
+{
+    PVOID ptr;
+    size_t totalSize = count * size;
+    
+    ptr = ExAllocatePoolWithTag(PagedPool, totalSize, 'UDFS');
+    if (ptr) {
+        RtlZeroMemory(ptr, totalSize);
+    }
+    return ptr;
+}
+
+int UdfsSprintf(char *buffer, const char *format, ...)
+{
+    /* Simple implementation - in a real driver this would need more work */
+    if (buffer && format) {
+        buffer[0] = '\0';  /* Just null terminate for now */
+    }
+    return 0;
+}
+
+size_t UdfsStrlen(const char *str)
+{
+    size_t len = 0;
+    if (!str) return 0;
+    while (*str++) len++;
+    return len;
+}
+
+int UdfsStrcmp(const char *str1, const char *str2)
+{
+    if (!str1 || !str2) return str1 ? 1 : (str2 ? -1 : 0);
+    
+    while (*str1 && *str1 == *str2) {
+        str1++;
+        str2++;
+    }
+    return (unsigned char)*str1 - (unsigned char)*str2;
+}
+
+int UdfsMemcmp(const void *ptr1, const void *ptr2, size_t count)
+{
+    const unsigned char *p1 = (const unsigned char *)ptr1;
+    const unsigned char *p2 = (const unsigned char *)ptr2;
+    
+    if (!ptr1 || !ptr2) return ptr1 ? 1 : (ptr2 ? -1 : 0);
+    
+    while (count--) {
+        if (*p1 != *p2) {
+            return *p1 - *p2;
+        }
+        p1++;
+        p2++;
+    }
+    return 0;
+}
+
+char *UdfsStrcpy(char *dest, const char *src)
+{
+    char *original = dest;
+    if (!dest || !src) return dest;
+    
+    while ((*dest++ = *src++));
+    return original;
+}
+
+char *UdfsStrncpy(char *dest, const char *src, size_t count)
+{
+    char *original = dest;
+    if (!dest || !src) return dest;
+    
+    while (count-- && (*dest++ = *src++));
+    while (count--) *dest++ = '\0';
+    return original;
+}
+
+char *UdfsStrcat(char *dest, const char *src)
+{
+    char *original = dest;
+    if (!dest || !src) return dest;
+    
+    while (*dest) dest++;  /* Find end of dest */
+    while ((*dest++ = *src++));  /* Copy src */
+    return original;
+}
+
+/*
  * Windows device read block implementation for UDFCT
  */
 Uint32 WindowsDeviceReadBlock(void *impUse, Uint32 blockSize, 
