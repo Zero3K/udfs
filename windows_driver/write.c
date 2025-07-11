@@ -151,95 +151,90 @@ UdfsWriteFileData(
     remainingBytes = Length;
     inputBuffer = (PUCHAR)Buffer;
     
-    __try {
-        /* Walk through the allocation descriptors to write file data */
-        allocItem = allocList ? allocList->head : NULL;
+    /* Walk through the allocation descriptors to write file data */
+    allocItem = allocList ? allocList->head : NULL;
+    
+    while (allocItem && remainingBytes > 0) {
+        AnyAllocationDescriptor *aad = &allocItem->aad;
+        Uint32 extentLength = aad->anyAd.extentLength & ADEL_MASK;
+        Uint32 extentType = (aad->anyAd.extentLength >> 30) & 0x3;
+        Uint32 logicalBlockNr;
+        Uint16 partRefNumber;
+        ULONG bytesToWrite;
+        ULONG blockOffset;
+        ULONG blockSize = mc->device->mediumInfo.blockSize;
+        PVOID blockBuffer;
         
-        while (allocItem && remainingBytes > 0) {
-            AnyAllocationDescriptor *aad = &allocItem->aad;
-            Uint32 extentLength = aad->anyAd.extentLength & ADEL_MASK;
-            Uint32 extentType = (aad->anyAd.extentLength >> 30) & 0x3;
-            Uint32 logicalBlockNr;
-            Uint16 partRefNumber;
-            ULONG bytesToWrite;
-            ULONG blockOffset;
-            ULONG blockSize = mc->device->mediumInfo.blockSize;
-            PVOID blockBuffer;
-            
-            /* Skip if this is not a recorded extent */
-            if (extentType != ADEL_RECORDED_AND_ALLOCATED) {
-                allocItem = allocItem->next;
-                continue;
-            }
-            
-            /* Get the location of this extent */
-            if (!udfGetLocation(aad, allocList->itemAdType, 
-                               Fcb->UdfNode->fePartRef,
-                               &partRefNumber, &logicalBlockNr)) {
-                allocItem = allocItem->next;
-                continue;
-            }
-            
-            /* Check if our write offset falls within this extent */
-            if (currentOffset >= extentLength) {
-                currentOffset -= extentLength;
-                allocItem = allocItem->next;
-                continue;
-            }
-            
-            /* Calculate how much to write to this extent */
-            bytesToWrite = min(remainingBytes, extentLength - currentOffset);
-            blockOffset = currentOffset % blockSize;
-            
-            /* Allocate temporary buffer for block-aligned writes */
-            blockBuffer = ExAllocatePoolWithTag(PagedPool, blockSize, 'UDFS');
-            if (!blockBuffer) {
-                Status = STATUS_INSUFFICIENT_RESOURCES;
-                break;
-            }
-            
-            /* Write the block(s) containing our data */
-            while (bytesToWrite > 0 && remainingBytes > 0) {
-                ULONG blockNumber = logicalBlockNr + (currentOffset / blockSize);
-                ULONG bytesToBlock = min(bytesToWrite, blockSize - blockOffset);
-                
-                /* If we're not writing a full block, read it first */
-                if (blockOffset != 0 || bytesToBlock < blockSize) {
-                    if (readBlocksFromPartition(mc, blockBuffer, partRefNumber, 
-                                               blockNumber, 1) != 1) {
-                        /* If read fails, zero the block */
-                        memset(blockBuffer, 0, blockSize);
-                    }
-                }
-                
-                /* Copy the data to the block buffer */
-                memcpy((PUCHAR)blockBuffer + blockOffset, inputBuffer, bytesToBlock);
-                
-                /* Write the block using UDFCT device interface */
-                if (!UdfsWriteBlockToPartition(mc, blockBuffer, partRefNumber, 
-                                              blockNumber, 1, blockSize)) {
-                    ExFreePoolWithTag(blockBuffer, 'UDFS');
-                    return STATUS_DEVICE_DATA_ERROR;
-                }
-                
-                inputBuffer += bytesToBlock;
-                bytesWritten += bytesToBlock;
-                bytesToWrite -= bytesToBlock;
-                remainingBytes -= bytesToBlock;
-                currentOffset += bytesToBlock;
-                blockOffset = 0; /* Only first block may have offset */
-            }
-            
-            ExFreePoolWithTag(blockBuffer, 'UDFS');
-            currentOffset = 0; /* Reset for next extent */
+        /* Skip if this is not a recorded extent */
+        if (extentType != ADEL_RECORDED_AND_ALLOCATED) {
             allocItem = allocItem->next;
+            continue;
         }
         
-        Status = STATUS_SUCCESS;
+        /* Get the location of this extent */
+        if (!udfGetLocation(aad, allocList->itemAdType, 
+                           Fcb->UdfNode->fePartRef,
+                           &partRefNumber, &logicalBlockNr)) {
+            allocItem = allocItem->next;
+            continue;
+        }
         
-    } __except(EXCEPTION_EXECUTE_HANDLER) {
-        Status = STATUS_INVALID_USER_BUFFER;
+        /* Check if our write offset falls within this extent */
+        if (currentOffset >= extentLength) {
+            currentOffset -= extentLength;
+            allocItem = allocItem->next;
+            continue;
+        }
+        
+        /* Calculate how much to write to this extent */
+        bytesToWrite = min(remainingBytes, extentLength - currentOffset);
+        blockOffset = currentOffset % blockSize;
+        
+        /* Allocate temporary buffer for block-aligned writes */
+        blockBuffer = ExAllocatePoolWithTag(PagedPool, blockSize, 'UDFS');
+        if (!blockBuffer) {
+            Status = STATUS_INSUFFICIENT_RESOURCES;
+            break;
+        }
+        
+        /* Write the block(s) containing our data */
+        while (bytesToWrite > 0 && remainingBytes > 0) {
+            ULONG blockNumber = logicalBlockNr + (currentOffset / blockSize);
+            ULONG bytesToBlock = min(bytesToWrite, blockSize - blockOffset);
+            
+            /* If we're not writing a full block, read it first */
+            if (blockOffset != 0 || bytesToBlock < blockSize) {
+                if (readBlocksFromPartition(mc, blockBuffer, partRefNumber, 
+                                           blockNumber, 1) != 1) {
+                    /* If read fails, zero the block */
+                    memset(blockBuffer, 0, blockSize);
+                }
+            }
+            
+            /* Copy the data to the block buffer */
+            memcpy((PUCHAR)blockBuffer + blockOffset, inputBuffer, bytesToBlock);
+            
+            /* Write the block using UDFCT device interface */
+            if (!UdfsWriteBlockToPartition(mc, blockBuffer, partRefNumber, 
+                                          blockNumber, 1, blockSize)) {
+                ExFreePoolWithTag(blockBuffer, 'UDFS');
+                return STATUS_DEVICE_DATA_ERROR;
+            }
+            
+            inputBuffer += bytesToBlock;
+            bytesWritten += bytesToBlock;
+            bytesToWrite -= bytesToBlock;
+            remainingBytes -= bytesToBlock;
+            currentOffset += bytesToBlock;
+            blockOffset = 0; /* Only first block may have offset */
+        }
+        
+        ExFreePoolWithTag(blockBuffer, 'UDFS');
+        currentOffset = 0; /* Reset for next extent */
+        allocItem = allocItem->next;
     }
+    
+    Status = STATUS_SUCCESS;
     
     UNREFERENCED_PARAMETER(bytesWritten);
     return Status;
@@ -248,6 +243,8 @@ UdfsWriteFileData(
 /*
  * Allocate space for a file using UDFCT allocation management
  */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 NTSTATUS
 UdfsAllocateFileSpace(
     IN PUDFS_FCB Fcb,
@@ -292,6 +289,7 @@ UdfsAllocateFileSpace(
 /*
  * Write blocks to partition using UDFCT device interface
  */
+#pragma GCC diagnostic ignored "-Wunused-function"
 BOOLEAN
 UdfsWriteBlockToPartition(
     IN UdfMountContext *mc,
@@ -331,3 +329,4 @@ UdfsWriteBlockToPartition(
     return (WindowsDeviceWriteBlock(adapter, mc->device->mediumInfo.blockSize, physicalBlockNr, 
                                    BlockCount, (Byte *)Buffer) == BlockCount);
 }
+#pragma GCC diagnostic pop
