@@ -215,6 +215,7 @@ UdfsReadFileData(
         Status = STATUS_INVALID_USER_BUFFER;
     }
     
+    UNREFERENCED_PARAMETER(bytesRead);
     return Status;
 }
 
@@ -252,12 +253,10 @@ UdfsReadFileDataFromUdfct(
         while (RemainingBytes > 0 && CurrentOffset < Fcb->FileSize.LowPart) {
             ULONG ChunkSize;
             ULONG BlockSize = 2048;  /* Standard UDF block size */
-            ULONG BlockNumber;
             ULONG BlockOffset;
             UCHAR BlockBuffer[2048];
             
             /* Calculate block and offset within block */
-            BlockNumber = CurrentOffset / BlockSize;
             BlockOffset = CurrentOffset % BlockSize;
             
             /* Calculate how much to read from this block */
@@ -282,5 +281,6 @@ UdfsReadFileDataFromUdfct(
         Status = STATUS_INVALID_USER_BUFFER;
     }
     
+    UNREFERENCED_PARAMETER(BytesRead);
     return Status;
 }

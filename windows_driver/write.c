@@ -116,7 +116,6 @@ UdfsWriteFileData(
 {
     NTSTATUS Status;
     UdfMountContext *mc;
-    Node *fileNode;
     UdfAllocationList *allocList;
     UdfAllocationItem *allocItem;
     ULONG bytesWritten = 0;
@@ -132,7 +131,6 @@ UdfsWriteFileData(
     
     vcb = Fcb->Vcb;
     mc = vcb->MountContext;
-    fileNode = Fcb->UdfNode;
     
     /* Check if we're writing beyond current file size */
     if (FileOffset.QuadPart + Length > Fcb->FileSize.QuadPart) {
@@ -140,7 +138,7 @@ UdfsWriteFileData(
     }
     
     /* Use UDFCT to get the file's allocation list */
-    allocList = fileNode->al;
+    allocList = Fcb->UdfNode->al;
     if (!allocList && needsNewAllocation) {
         /* Need to allocate space for new file */
         Status = UdfsAllocateFileSpace(Fcb, FileOffset.QuadPart + Length);
@@ -155,7 +153,7 @@ UdfsWriteFileData(
     
     __try {
         /* Walk through the allocation descriptors to write file data */
-        allocItem = allocList->head;
+        allocItem = allocList ? allocList->head : NULL;
         
         while (allocItem && remainingBytes > 0) {
             AnyAllocationDescriptor *aad = &allocItem->aad;
@@ -176,7 +174,7 @@ UdfsWriteFileData(
             
             /* Get the location of this extent */
             if (!udfGetLocation(aad, allocList->itemAdType, 
-                               fileNode->fePartRef,
+                               Fcb->UdfNode->fePartRef,
                                &partRefNumber, &logicalBlockNr)) {
                 allocItem = allocItem->next;
                 continue;
@@ -243,6 +241,7 @@ UdfsWriteFileData(
         Status = STATUS_INVALID_USER_BUFFER;
     }
     
+    UNREFERENCED_PARAMETER(bytesWritten);
     return Status;
 }
 
@@ -260,14 +259,16 @@ UdfsAllocateFileSpace(
     PUDFS_VCB vcb;
     ULONG blocksNeeded;
     ULONG currentBlocks;
+    ULONG blockSize;
     
     vcb = Fcb->Vcb;
     mc = vcb->MountContext;
     fileNode = Fcb->UdfNode;
+    blockSize = mc->device->mediumInfo.blockSize;
     
     /* Calculate blocks needed */
-    blocksNeeded = (ULONG)((NewFileSize + mc->blockSize - 1) / mc->blockSize);
-    currentBlocks = (ULONG)((Fcb->FileSize.QuadPart + mc->blockSize - 1) / mc->blockSize);
+    blocksNeeded = (ULONG)((NewFileSize + blockSize - 1) / blockSize);
+    currentBlocks = (ULONG)((Fcb->FileSize.QuadPart + blockSize - 1) / blockSize);
     
     if (blocksNeeded <= currentBlocks) {
         /* No additional allocation needed */
@@ -284,6 +285,7 @@ UdfsAllocateFileSpace(
     DbgPrint("UDFS: File space allocation needed: %lu additional blocks\n", 
              blocksNeeded - currentBlocks);
     
+    UNREFERENCED_PARAMETER(fileNode);
     return STATUS_SUCCESS;
 }
 
@@ -303,6 +305,8 @@ UdfsWriteBlockToPartition(
     PartitionMapInfo *pmi;
     Uint32 physicalBlockNr;
     WindowsDeviceAdapter *adapter;
+    
+    UNREFERENCED_PARAMETER(BlockSize);
     
     if (!mc || !mc->device || !Buffer) {
         return FALSE;
@@ -324,6 +328,6 @@ UdfsWriteBlockToPartition(
     }
     
     /* Write using the device write function */
-    return (WindowsDeviceWriteBlock(adapter, BlockSize, physicalBlockNr, 
+    return (WindowsDeviceWriteBlock(adapter, mc->device->mediumInfo.blockSize, physicalBlockNr, 
                                    BlockCount, (Byte *)Buffer) == BlockCount);
 }
