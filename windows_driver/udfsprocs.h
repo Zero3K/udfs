@@ -110,19 +110,19 @@ typedef struct Device Device;
 typedef struct Node Node;
 
 /* Include core UDFCT headers with adaptations */
-#include "../udfct/uct_core/mytypes.h"
-#include "../udfct/uct_core/general.h"
-#include "../udfct/uct_core/udfstruct.h"
-#include "../udfct/uct_core/uctdata.h"
-#include "../udfct/uct_core/uctnodes.h"
-#include "../udfct/uct_core/uctstatus.h"
-#include "../udfct/uct_core/uctfiles.h"
-#include "../udfct/uct_core/uctgeneral.h"
-#include "../udfct/uct_core/uctallocation.h"
-#include "../udfct/uct_core/uctverify.h"
-#include "../udfct/uct_core/uctendian.h"
-#include "../udfct/uct_core/unicode.h"
-#include "../udfct/uct_core/device.h"
+#include "mytypes.h"
+#include "general.h"
+#include "udfstruct.h"
+#include "uctdata.h"
+#include "uctnodes.h"
+#include "uctstatus.h"
+#include "uctfiles.h"
+#include "uctgeneral.h"
+#include "uctallocation.h"
+#include "uctverify.h"
+#include "uctendian.h"
+#include "unicode.h"
+#include "device.h"
 
 /* Windows kernel mode device adaptation */
 typedef struct _WindowsDeviceAdapter {
@@ -148,10 +148,10 @@ NTSTATUS UdfsInitializeUdfctDevice(PDEVICE_OBJECT TargetDevice, Device **uctDevi
 
 #else
 /* User mode - include original UDFCT headers */
-#include "../udfct/uct_core/uct_core.h"
-#include "../udfct/uct_core/uctfiles.h"
-#include "../udfct/uct_core/uctgeneral.h"
-#include "../udfct/uct_core/unicode.h"
+#include "uct_core.h"
+#include "uctfiles.h"
+#include "uctgeneral.h"
+#include "unicode.h"
 #endif
 
 /* Driver tag for memory allocations */
