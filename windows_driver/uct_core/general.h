@@ -25,26 +25,11 @@
 /* Forward declare DbgPrint to avoid header conflicts */
 ULONG DbgPrint(PCSTR Format, ...);
 
-/* Kernel mode stubs for standard library functions */
-
-/* fprintf stub - ignore file parameter and do nothing in kernel mode */
-static inline int fprintf(void *file_ignored, const char *fmt, ...) {
-    /* Suppress unused parameter warnings */
-    (void)file_ignored;
-    (void)fmt;
-    /* For kernel mode, just return success - actual logging done elsewhere */
-    return 0;
-}
-
-/* fflush stub - do nothing in kernel mode */
-static inline int fflush(void *file_ignored) {
-    (void)file_ignored;
-    return 0;
-}
+/* Kernel mode stubs for standard library functions that ReactOS doesn't provide */
+/* Note: fprintf, fflush are provided by ReactOS, so we don't redefine them */
 
 /* Forward declarations to avoid built-in conflicts */
 void* memcpy(void *dest, const void *src, size_t count);
-void free(void *ptr);
 
 #endif
 

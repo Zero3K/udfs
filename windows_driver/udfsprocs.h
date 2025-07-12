@@ -50,8 +50,8 @@
 
 /* Windows kernel mode UDFCT adaptation */
 #define printf DbgPrint
-#define malloc(size) ExAllocatePoolWithTag(PagedPool, size, 'UDFS')
-#define free(ptr) ExFreePoolWithTag(ptr, 'UDFS')
+#define malloc(size) ExAllocatePoolWithTag(PagedPool, size, 0x53464455) /* 'UDFS' */
+#define free(ptr) ExFreePoolWithTag(ptr, 0x53464455) /* 'UDFS' */
 #define calloc(count, size) UdfsCalloc(count, size)
 #define realloc(ptr, size) UdfsReallocatePool(ptr, size)
 #define sprintf UdfsSprintf
