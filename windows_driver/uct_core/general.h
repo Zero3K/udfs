@@ -23,6 +23,22 @@
 
 #ifdef UDF_KERNEL_DRIVER
 
+/* Windows kernel mode - forward declarations for functions we need */
+#ifndef _NTDDK_H
+/* Only declare if Windows kernel headers are not included */
+typedef unsigned long ULONG;
+typedef const char* PCSTR;
+typedef void* PVOID;
+typedef void VOID;
+typedef enum _POOL_TYPE {
+    PagedPool = 1
+} POOL_TYPE;
+
+ULONG DbgPrint(PCSTR Format, ...);
+PVOID ExAllocatePoolWithTag(POOL_TYPE PoolType, size_t NumberOfBytes, ULONG Tag);
+VOID ExFreePoolWithTag(PVOID P, ULONG Tag);
+#endif
+
 #else /* !UDF_KERNEL_DRIVER */
 
 /* For non-kernel mode compilation, provide basic type definitions */
