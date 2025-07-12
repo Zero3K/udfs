@@ -46,9 +46,12 @@ typedef enum _POOL_TYPE {
 #endif
 
 /* Forward declarations for Windows kernel functions used in macros */
+/* Only declare if not already declared by system headers */
+#ifndef _NTDDK_
 ULONG DbgPrint(PCSTR Format, ...);
 PVOID ExAllocatePoolWithTag(POOL_TYPE PoolType, size_t NumberOfBytes, ULONG Tag);
 VOID ExFreePoolWithTag(PVOID P, ULONG Tag);
+#endif
 
 #else /* !UDF_KERNEL_DRIVER */
 
@@ -72,9 +75,11 @@ typedef enum _POOL_TYPE {
 } POOL_TYPE;
 
 /* Stub declarations for non-kernel mode */
+#ifndef _NTDDK_
 ULONG DbgPrint(PCSTR Format, ...);
 PVOID ExAllocatePoolWithTag(POOL_TYPE PoolType, size_t NumberOfBytes, ULONG Tag);
 VOID ExFreePoolWithTag(PVOID P, ULONG Tag);
+#endif
 
 #endif /* UDF_KERNEL_DRIVER */
 

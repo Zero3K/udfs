@@ -21,7 +21,8 @@
  */
 #ifdef __GNUC__
 #define PACKED 
-#define STRUCT_PACKED __attribute__((aligned(1),packed))
+/* Use simpler packed attribute for ReactOS compatibility */
+#define STRUCT_PACKED __attribute__((packed))
 #pragma pack(1)
 #else
 #define PACKED

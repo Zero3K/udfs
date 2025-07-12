@@ -17,6 +17,7 @@
 #include <ntddk.h>
 #include <ntstrsafe.h>
 #include <ntdddisk.h>
+#include <stdarg.h>
 
 /* Debug infrastructure */
 #include "udfs_debug.h"
@@ -53,7 +54,10 @@
 
 /* Windows kernel mode UDFCT adaptation */
 #define printf DbgPrint
+#define fprintf UdfsFprintf  
+#define malloc(size) UdfsMalloc(size)
 #define calloc(count, size) UdfsCalloc(count, size)
+#define free(ptr) UdfsFree(ptr)
 #define realloc(ptr, size) UdfsReallocatePool(ptr, size)
 #define sprintf UdfsSprintf
 #define SEEK_SET 0
@@ -72,8 +76,11 @@
 #define vsprintf UdfsVsprintf
 
 /* Function prototypes for kernel mode string functions */
+PVOID UdfsMalloc(size_t size);
 PVOID UdfsCalloc(size_t count, size_t size);
+VOID UdfsFree(PVOID ptr);
 PVOID UdfsRealloc(PVOID ptr, size_t size);
+int UdfsFprintf(void *stream, const char *format, ...);
 int UdfsSprintf(char *buffer, const char *format, ...);
 int UdfsVsprintf(char *buffer, const char *format, va_list args);
 size_t UdfsStrlen(const char *str);
@@ -156,8 +163,8 @@ NTSTATUS UdfsInitializeUdfctDevice(PDEVICE_OBJECT TargetDevice, Device **uctDevi
 #include "unicode.h"
 #endif
 
-/* Driver tag for memory allocations */
-#define UDFS_TAG 'SFDU'
+/* Driver tag for memory allocations - use numeric format for ReactOS compatibility */
+#define UDFS_TAG ((ULONG)'sfdU')
 
 /* File system name */
 #define UDFS_DEVICE_NAME L"\\Udfs"

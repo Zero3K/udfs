@@ -2,6 +2,9 @@
 # Based on UDFCT (UDF Conformance Testing Application)
 # Compatible with ReactOS build environment
 
+cmake_minimum_required(VERSION 3.4.0)
+project(udfs)
+
 list(APPEND SOURCE
     udfs.c
     create.c
