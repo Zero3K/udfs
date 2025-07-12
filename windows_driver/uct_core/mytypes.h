@@ -15,6 +15,17 @@
 #ifndef __UCT_MYTYPES_H__
 #define __UCT_MYTYPES_H__
 
+/* Windows kernel mode type definitions */
+#ifdef UDF_KERNEL_DRIVER
+/* For kernel mode, we need to include minimal Windows types */
+#ifndef _BASETSD_H_
+typedef unsigned int SIZE_T;
+#endif
+#ifndef size_t
+#define size_t SIZE_T
+#endif
+#endif
+
 #ifdef        __GNUC__
 #ifndef __int64
 #define __int64 long long int
