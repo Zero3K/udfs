@@ -52,18 +52,6 @@ VOID UdfsFree(PVOID ptr)
     }
 }
 
-PVOID UdfsCalloc(size_t count, size_t size)
-{
-    PVOID ptr;
-    size_t totalSize = count * size;
-    
-    ptr = ExAllocatePoolWithTag(PagedPool, totalSize, UDFS_TAG);
-    if (ptr) {
-        RtlZeroMemory(ptr, totalSize);
-    }
-    return ptr;
-}
-
 PVOID UdfsRealloc(PVOID ptr, size_t size)
 {
     PVOID newPtr;
@@ -96,42 +84,66 @@ int UdfsFprintf(void *stream, const char *format, ...)
     return 0;
 }
 
+int UdfsVsprintf(char *buffer, const char *format, va_list args)
+{
+    /* Simple implementation using RtlStringCchVPrintfA if available,
+     * otherwise fall back to basic vsprintf functionality */
+    int result;
+    
+    /* Try to use a simple string formatting approach */
+    result = _vsnprintf(buffer, 512, format, args);
+    
+    return result;
+}
+
 int UdfsSprintf(char *buffer, const char *format, ...)
 {
-    /* Simple implementation - in a real driver this would need more work */
-    if (buffer && format) {
-        buffer[0] = '\0';  /* Just null terminate for now */
+    va_list args;
+    int result;
+    
+    va_start(args, format);
+    result = UdfsVsprintf(buffer, format, args);
+    va_end(args);
+    
+    return result;
+}
+
+PVOID UdfsCalloc(size_t count, size_t size)
+{
+    SIZE_T totalSize = count * size;
+    PVOID buffer = ExAllocatePoolWithTag(PagedPool, totalSize, UDFS_TAG);
+    if (buffer) {
+        RtlZeroMemory(buffer, totalSize);
     }
-    return 0;
+    return buffer;
 }
 
 size_t UdfsStrlen(const char *str)
 {
     size_t len = 0;
-    if (!str) return 0;
-    while (*str++) len++;
+    if (str) {
+        while (*str++) len++;
+    }
     return len;
 }
 
 int UdfsStrcmp(const char *str1, const char *str2)
 {
-    if (!str1 || !str2) return str1 ? 1 : (str2 ? -1 : 0);
+    if (!str1 || !str2) return (str1 == str2) ? 0 : (str1 ? 1 : -1);
     
-    while (*str1 && *str1 == *str2) {
+    while (*str1 && (*str1 == *str2)) {
         str1++;
         str2++;
     }
-    return (unsigned char)*str1 - (unsigned char)*str2;
+    return *(unsigned char*)str1 - *(unsigned char*)str2;
 }
 
 int UdfsMemcmp(const void *ptr1, const void *ptr2, size_t count)
 {
-    const unsigned char *p1 = (const unsigned char *)ptr1;
-    const unsigned char *p2 = (const unsigned char *)ptr2;
+    const unsigned char *p1 = (const unsigned char*)ptr1;
+    const unsigned char *p2 = (const unsigned char*)ptr2;
     
-    if (!ptr1 || !ptr2) return ptr1 ? 1 : (ptr2 ? -1 : 0);
-    
-    while (count--) {
+    while (count-- > 0) {
         if (*p1 != *p2) {
             return *p1 - *p2;
         }
@@ -143,31 +155,31 @@ int UdfsMemcmp(const void *ptr1, const void *ptr2, size_t count)
 
 char *UdfsStrcpy(char *dest, const char *src)
 {
-    char *original = dest;
-    if (!dest || !src) return dest;
-    
-    while ((*dest++ = *src++));
-    return original;
+    char *original_dest = dest;
+    if (dest && src) {
+        while ((*dest++ = *src++));
+    }
+    return original_dest;
 }
 
 char *UdfsStrncpy(char *dest, const char *src, size_t count)
 {
-    char *original = dest;
-    if (!dest || !src) return dest;
-    
-    while (count-- && (*dest++ = *src++));
-    while (count--) *dest++ = '\0';
-    return original;
+    char *original_dest = dest;
+    if (dest && src) {
+        while (count-- > 0 && (*dest++ = *src++));
+        while (count-- > 0) *dest++ = '\0';
+    }
+    return original_dest;
 }
 
 char *UdfsStrcat(char *dest, const char *src)
 {
-    char *original = dest;
-    if (!dest || !src) return dest;
-    
-    while (*dest) dest++;  /* Find end of dest */
-    while ((*dest++ = *src++));  /* Copy src */
-    return original;
+    char *original_dest = dest;
+    if (dest && src) {
+        while (*dest) dest++;
+        while ((*dest++ = *src++));
+    }
+    return original_dest;
 }
 
 /*
@@ -521,106 +533,4 @@ VOID UdfsCleanupUdfctMountContext(UdfMountContext *MountContext)
     
     /* Free mount context */
     ExFreePoolWithTag(MountContext, UDFS_TAG);
-}
-
-/*
- * Kernel mode string functions - simple implementations for basic functionality
- */
-
-int UdfsVsprintf(char *buffer, const char *format, va_list args)
-{
-    /* Simple implementation using RtlStringCchVPrintfA if available,
-     * otherwise fall back to basic vsprintf functionality */
-    int result;
-    
-    /* Try to use a simple string formatting approach */
-    result = _vsnprintf(buffer, 512, format, args);
-    
-    return result;
-}
-
-size_t UdfsStrlen(const char *str)
-{
-    size_t len = 0;
-    if (str) {
-        while (*str++) len++;
-    }
-    return len;
-}
-
-int UdfsStrcmp(const char *str1, const char *str2)
-{
-    if (!str1 || !str2) return (str1 == str2) ? 0 : (str1 ? 1 : -1);
-    
-    while (*str1 && (*str1 == *str2)) {
-        str1++;
-        str2++;
-    }
-    return *(unsigned char*)str1 - *(unsigned char*)str2;
-}
-
-int UdfsMemcmp(const void *ptr1, const void *ptr2, size_t count)
-{
-    const unsigned char *p1 = (const unsigned char*)ptr1;
-    const unsigned char *p2 = (const unsigned char*)ptr2;
-    
-    while (count-- > 0) {
-        if (*p1 != *p2) {
-            return *p1 - *p2;
-        }
-        p1++;
-        p2++;
-    }
-    return 0;
-}
-
-char *UdfsStrcpy(char *dest, const char *src)
-{
-    char *original_dest = dest;
-    if (dest && src) {
-        while ((*dest++ = *src++));
-    }
-    return original_dest;
-}
-
-char *UdfsStrncpy(char *dest, const char *src, size_t count)
-{
-    char *original_dest = dest;
-    if (dest && src) {
-        while (count-- > 0 && (*dest++ = *src++));
-        while (count-- > 0) *dest++ = '\0';
-    }
-    return original_dest;
-}
-
-char *UdfsStrcat(char *dest, const char *src)
-{
-    char *original_dest = dest;
-    if (dest && src) {
-        while (*dest) dest++;
-        while ((*dest++ = *src++));
-    }
-    return original_dest;
-}
-
-PVOID UdfsCalloc(size_t count, size_t size)
-{
-    SIZE_T totalSize = count * size;
-    PVOID buffer = ExAllocatePoolWithTag(PagedPool, totalSize, UDFS_TAG);
-    if (buffer) {
-        RtlZeroMemory(buffer, totalSize);
-    }
-    return buffer;
-}
-
-int UdfsSprintf(char *buffer, const char *format, ...)
-{
-    va_list args;
-    int result;
-    
-    va_start(args, format);
-    result = UdfsVsprintf(buffer, format, args);
-    va_end(args);
-    
-    return result;
 }
