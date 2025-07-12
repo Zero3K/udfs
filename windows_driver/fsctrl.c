@@ -84,7 +84,7 @@ UdfsMountVolume(
     Vcb->IsReadOnly = FALSE; /* Enable read-write by default */
     
     /* Check medium writability */
-    if (MountContext->device && MountContext->device->mediumInfo.writabilityType == MTYPE_WR_NONE) {
+    if (MountContext->device && MountContext->device->mediumInfo.writabilityType == MTYPE_WR_READONLY) {
         Vcb->IsReadOnly = TRUE;
         DbgPrint("UDFS: Medium is read-only\n");
     }

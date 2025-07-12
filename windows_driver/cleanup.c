@@ -24,6 +24,8 @@ UdfsCleanup(
     Fcb = (PUDFS_FCB)FileObject->FsContext;
     Ccb = (PUDFS_CCB)FileObject->FsContext2;
     
+    UNREFERENCED_PARAMETER(Ccb);
+    
     /* Clear file object pointers */
     FileObject->FsContext = NULL;
     FileObject->FsContext2 = NULL;

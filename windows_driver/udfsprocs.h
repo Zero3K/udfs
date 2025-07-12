@@ -123,6 +123,7 @@ typedef struct Node Node;
 #include "uctendian.h"
 #include "unicode.h"
 #include "device.h"
+#include "uctmedium.h"
 
 /* Windows kernel mode device adaptation */
 typedef struct _WindowsDeviceAdapter {
