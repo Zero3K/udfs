@@ -61,6 +61,9 @@
 #endif
 
 /* Windows kernel mode UDFCT adaptation */
+/* Mark that standard library macros are defined to prevent conflicts */
+#define UDF_STD_MACROS_DEFINED 1
+
 #define printf DbgPrint
 #define fprintf UdfsFprintf  
 #define malloc(size) UdfsMalloc(size)

@@ -87,21 +87,19 @@ VOID ExFreePoolWithTag(PVOID P, ULONG Tag);
 #endif /* UDF_KERNEL_DRIVER */
 
 /* Kernel mode stubs for standard library functions that ReactOS doesn't provide */
-/* Note: fprintf, fflush need to be redefined as no-ops since uctout is NULL */
+/* Note: Standard library function redefinitions are handled in udfsprocs.h to avoid conflicts */
 
-/* Redefine fprintf and fflush as no-ops since uctout is NULL in kernel mode */
-#define fprintf(file, ...) ((void)0)
-#define fflush(file) ((void)0)
+/* Pool allocation constants - for internal use only */
+#ifndef UDFS_POOL_TAG
+#define UDFS_POOL_TAG 0x53464455UL  /* 'UDFS' */
+#endif
 
+/* Only define standard library macros if not already defined by udfsprocs.h */
+#ifndef UDF_STD_MACROS_DEFINED
 /* Also redefine VERBOSE macros as no-ops for kernel mode */
 #define VERBOSE00(file, ...) ((void)0)
-
-/* Pool allocation constants */
-#define UDFS_POOL_TAG 0x53464455UL  /* 'UDFS' */
-
-/* Memory allocation macros for kernel mode */
-#define malloc(size) ExAllocatePoolWithTag(PagedPool, size, UDFS_POOL_TAG)
-#define free(ptr) ExFreePoolWithTag(ptr, UDFS_POOL_TAG)
+#define UDF_VERBOSE00_DEFINED 1
+#endif
 
 /* Forward declarations to avoid built-in conflicts */
 void* memcpy(void *dest, const void *src, size_t count);
@@ -250,7 +248,10 @@ extern Int8 uctVerboseLevel;
  * closed with ENDif.
  */
 #ifdef UDF_KERNEL_DRIVER
-/* VERBOSE00 already defined as no-op above for kernel mode */
+/* VERBOSE00 defined conditionally above based on UDF_STD_MACROS_DEFINED */
+#ifndef UDF_VERBOSE00_DEFINED
+#define VERBOSE00(file, ...) ((void)0)
+#endif
 #else
 #define    VERBOSE00    fprintf         /* unconditional */
 #endif

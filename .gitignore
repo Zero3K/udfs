@@ -24,4 +24,5 @@ udfs_example
 # Temporary files
 /tmp/
 *.tmp
-*.bak
+*.bak*/build/
+build/

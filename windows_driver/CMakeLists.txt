@@ -63,14 +63,14 @@ target_include_directories(udfs PRIVATE
 
 # Compiler definitions for kernel mode and UDF support
 target_compile_definitions(udfs PRIVATE
-    -DKERNEL_MODE=1
-    -D_FILE_OFFSET_BITS=64
-    -D_LARGEFILE_SOURCE
-    -D__USE_LARGEFILE64
-    -DUDF_KERNEL_DRIVER=1
-    $<$<BOOL:${UDF_REACTOS_BUILD}>:-DREACTOS=1>
-    $<$<BOOL:${UDF_REACTOS_BUILD}>:-D__REACTOS__=1>
-    $<$<CONFIG:Debug>:-DDEBUG=1>)
+    KERNEL_MODE=1
+    _FILE_OFFSET_BITS=64
+    _LARGEFILE_SOURCE
+    __USE_LARGEFILE64
+    UDF_KERNEL_DRIVER=1
+    $<$<BOOL:${UDF_REACTOS_BUILD}>:REACTOS=1>
+    $<$<BOOL:${UDF_REACTOS_BUILD}>:__REACTOS__=1>
+    $<$<CONFIG:Debug>:DEBUG=1>)
 
 # ReactOS-specific compiler flags for GCC compatibility
 if(UDF_REACTOS_BUILD AND CMAKE_C_COMPILER_ID MATCHES "GNU")
