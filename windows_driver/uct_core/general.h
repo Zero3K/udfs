@@ -74,8 +74,6 @@ size_t strlen(const char *str);
 int sprintf(char *str, const char *format, ...);
 int memcmp(const void *ptr1, const void *ptr2, size_t count);
 
-#endif
-
 
 #undef  DEBUG01     /* normally #undef */
 #undef  DEBUG02     /* normally #undef */
