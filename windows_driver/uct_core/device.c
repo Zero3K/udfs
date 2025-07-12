@@ -159,8 +159,8 @@ static Uint32 deviceReadCachePacket(Device *device,
             return deviceReadLowest(device, firstBlock,
                                     reqBlocks, buffer);
         }
-        fprintf(uctout, "  ==>\tread cache: max %lu buffers"
-                                " of %lu sectors, total %lu Kb\n",
+        fprintf(uctout, "  ==>\tread cache: max %u buffers"
+                                " of %u sectors, total %u Kb\n",
              READCACHE_MAXITEMS, READCACHE_PACKET,
             (READCACHE_MAXITEMS * READCACHE_PACKET * blockSize)
                             / 1024 );
@@ -489,11 +489,11 @@ extern Uint32 deviceReadBlock(Device *device,     Uint32 firstBlock,
 
     ifVERBOSE(vLevel)
     {
-        fprintf(uctout, "%7lu\t%sread ", firstBlock,
+        fprintf(uctout, "%7u\t%sread ", firstBlock,
                         (buffer==NULL) ? "fake " : "");
         if( nrOfBlocks == 1 )
              fprintf(uctout,"block\n");
-        else fprintf(uctout,"%lu blocks\n", nrOfBlocks);
+        else fprintf(uctout,"%u blocks\n", nrOfBlocks);
     }
     ENDif;      /* vLevel */
 
