@@ -34,10 +34,21 @@ typedef const char* PCSTR;
 ULONG DbgPrint(PCSTR Format, ...);
 
 /* Kernel mode stubs for standard library functions that ReactOS doesn't provide */
-/* Note: fprintf, fflush are provided by ReactOS, so we don't redefine them */
+/* Note: fprintf, fflush need to be redefined as no-ops since uctout is NULL */
+
+/* Redefine fprintf and fflush as no-ops since uctout is NULL in kernel mode */
+#define fprintf(file, ...) ((void)0)
+#define fflush(file) ((void)0)
+
+/* Also redefine VERBOSE macros as no-ops for kernel mode */
+#define VERBOSE00(file, ...) ((void)0)
 
 /* Forward declarations to avoid built-in conflicts */
 void* memcpy(void *dest, const void *src, size_t count);
+void free(void *ptr);
+size_t strlen(const char *str);
+int sprintf(char *str, const char *format, ...);
+int memcmp(const void *ptr1, const void *ptr2, size_t count);
 
 #endif
 
@@ -181,7 +192,11 @@ extern Int8 uctVerboseLevel;
  * All macros starting with "if" shall be explicitly
  * closed with ENDif.
  */
+#ifdef UDF_KERNEL_DRIVER
+/* VERBOSE00 already defined as no-op above for kernel mode */
+#else
 #define    VERBOSE00    fprintf         /* unconditional */
+#endif
 #define ifPRINTwarn01   ifVERBOSE(WARN01level) fprintf
 #define ifPRINTinfo01   ifVERBOSE(INFO01level) fprintf
 #define ifPRINTinfo02   ifVERBOSE(INFO02level) fprintf
