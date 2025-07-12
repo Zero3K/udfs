@@ -12,17 +12,25 @@
 #ifndef _UDFSPROCS_H_
 #define _UDFSPROCS_H_
 
-/* Windows kernel headers */
-#include <ntifs.h>
+/* Windows kernel headers - ReactOS compatible order */
 #include <ntddk.h>
+#include <ntifs.h>
 #include <ntstrsafe.h>
 #include <ntdddisk.h>
 #include <stdarg.h>
+
+/* ReactOS Build Environment compatibility */
+#include "reactos_compat.h"
 
 /* Debug infrastructure */
 #include "udfs_debug.h"
 
 /* UDFCT core headers - adapted for kernel mode */
+/* ReactOS Build Environment compatibility */
+#if defined(REACTOS) || defined(__REACTOS__)
+#define UDF_REACTOS_BUILD 1
+#endif
+
 #ifdef KERNEL_MODE
 
 /* Prevent standard library includes that are not available in kernel mode */
@@ -163,8 +171,14 @@ NTSTATUS UdfsInitializeUdfctDevice(PDEVICE_OBJECT TargetDevice, Device **uctDevi
 #include "unicode.h"
 #endif
 
-/* Driver tag for memory allocations - use numeric format for ReactOS compatibility */
+/* Driver tag for memory allocations - ReactOS compatible format */
+#if defined(UDF_REACTOS_BUILD)
+/* ReactOS prefers consistent tag formats */
+#define UDFS_TAG 'sfdU'
+#else
+/* Standard Windows format */
 #define UDFS_TAG ((ULONG)'sfdU')
+#endif
 
 /* File system name */
 #define UDFS_DEVICE_NAME L"\\Udfs"

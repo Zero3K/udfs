@@ -21,8 +21,13 @@
  */
 #ifdef __GNUC__
 #define PACKED 
-/* Use simpler packed attribute for ReactOS compatibility */
+/* ReactOS GCC compatibility - use simple packed attribute */
+#if defined(REACTOS) || defined(__REACTOS__)
 #define STRUCT_PACKED __attribute__((packed))
+#else
+/* Standard GCC packed attribute */
+#define STRUCT_PACKED __attribute__((packed))
+#endif
 #pragma pack(1)
 #else
 #define PACKED

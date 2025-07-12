@@ -2,7 +2,17 @@
 # Based on UDFCT (UDF Conformance Testing Application)
 # Compatible with ReactOS build environment
 
-cmake_minimum_required(VERSION 3.4.0)
+# ReactOS compatibility - use lower minimum version if building with ReactOS
+if(DEFINED REACTOS OR DEFINED ENV{ROS_ARCH} OR DEFINED ENV{REACTOS})
+    cmake_minimum_required(VERSION 3.0.0)
+    set(UDF_REACTOS_BUILD ON)
+    message(STATUS "Building for ReactOS environment")
+else()
+    cmake_minimum_required(VERSION 3.4.0)
+    set(UDF_REACTOS_BUILD OFF)
+    message(STATUS "Building for standard Windows environment")
+endif()
+
 project(udfs)
 
 list(APPEND SOURCE
@@ -19,7 +29,8 @@ list(APPEND SOURCE
     udfct_windows.c
     udfs_debug.c
     udfsprocs.h
-    udfs_debug.h)
+    udfs_debug.h
+    reactos_compat.h)
 
 # Include UDFCT core components needed for kernel mode
 list(APPEND UDFCT_SOURCE
@@ -57,7 +68,19 @@ target_compile_definitions(udfs PRIVATE
     -D_LARGEFILE_SOURCE
     -D__USE_LARGEFILE64
     -DUDF_KERNEL_DRIVER=1
+    $<$<BOOL:${UDF_REACTOS_BUILD}>:-DREACTOS=1>
+    $<$<BOOL:${UDF_REACTOS_BUILD}>:-D__REACTOS__=1>
     $<$<CONFIG:Debug>:-DDEBUG=1>)
+
+# ReactOS-specific compiler flags for GCC compatibility
+if(UDF_REACTOS_BUILD AND CMAKE_C_COMPILER_ID MATCHES "GNU")
+    target_compile_options(udfs PRIVATE
+        -Wno-packed
+        -Wno-attributes
+        -fno-strict-aliasing
+        -fno-builtin
+        -std=c99)
+endif()
 
 # Link with required kernel libraries
 target_link_libraries(udfs ${PSEH_LIB})

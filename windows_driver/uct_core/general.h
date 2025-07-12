@@ -39,7 +39,8 @@ typedef void VOID;
 #endif
 
 /* Pool types for memory allocation - kernel mode */
-#ifndef _POOL_TYPE
+/* ReactOS compatibility - only define if not already defined */
+#if !defined(_POOL_TYPE) && !defined(_NTDDK_) && !defined(REACTOS) && !defined(__REACTOS__)
 typedef enum _POOL_TYPE {
     PagedPool = 1
 } POOL_TYPE;
@@ -47,7 +48,8 @@ typedef enum _POOL_TYPE {
 
 /* Forward declarations for Windows kernel functions used in macros */
 /* Only declare if not already declared by system headers */
-#ifndef _NTDDK_
+/* ReactOS compatibility - check for ReactOS defines */
+#if !defined(_NTDDK_) && !defined(REACTOS) && !defined(__REACTOS__)
 ULONG DbgPrint(PCSTR Format, ...);
 PVOID ExAllocatePoolWithTag(POOL_TYPE PoolType, size_t NumberOfBytes, ULONG Tag);
 VOID ExFreePoolWithTag(PVOID P, ULONG Tag);
@@ -75,7 +77,8 @@ typedef enum _POOL_TYPE {
 } POOL_TYPE;
 
 /* Stub declarations for non-kernel mode */
-#ifndef _NTDDK_
+/* ReactOS compatibility - check for ReactOS defines */
+#if !defined(_NTDDK_) && !defined(REACTOS) && !defined(__REACTOS__)
 ULONG DbgPrint(PCSTR Format, ...);
 PVOID ExAllocatePoolWithTag(POOL_TYPE PoolType, size_t NumberOfBytes, ULONG Tag);
 VOID ExFreePoolWithTag(PVOID P, ULONG Tag);
