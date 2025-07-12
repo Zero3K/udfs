@@ -38,8 +38,12 @@ UdfsRead(
         FileOffset = FileObject->CurrentByteOffset;
     }
     
+    UDFS_DEBUG_READ_ONCE("Read request: offset=%I64d, length=%lu\n", 
+                         FileOffset.QuadPart, Length);
+    
     /* Check if this is a directory */
     if (Fcb->Flags & UDFS_FCB_DIRECTORY) {
+        UDFS_DEBUG_ERROR_ONCE("Attempted to read from directory FCB\n");
         Status = STATUS_INVALID_PARAMETER;
         goto complete;
     }

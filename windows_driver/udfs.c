@@ -33,12 +33,20 @@ DriverEntry(
     InitializeListHead(&UdfsData.VcbList);
     ExInitializeResourceLite(&UdfsData.GlobalResource);
     
+    /* Initialize debug system */
+    UdfsInitializeDebugSystem();
+    UDFS_DEBUG_INFO_ONCE("Driver initializing, version compiled at %s %s\n", __DATE__, __TIME__);
+    
     /* Initialize UDFCT subsystem */
     Status = UdfsInitializeUdfctSubsystem();
     if (!NT_SUCCESS(Status)) {
+        UDFS_DEBUG_ERROR_ONCE("Failed to initialize UDFCT subsystem, status=0x%08X\n", Status);
+        UdfsCleanupDebugSystem();
         ExDeleteResourceLite(&UdfsData.GlobalResource);
         return Status;
     }
+    
+    UDFS_DEBUG_INFO_ONCE("UDFCT subsystem initialized successfully\n");
     
     /* Set up dispatch table */
     DriverObject->MajorFunction[IRP_MJ_CREATE] = UdfsDispatch;
@@ -51,6 +59,8 @@ DriverEntry(
     DriverObject->MajorFunction[IRP_MJ_DIRECTORY_CONTROL] = UdfsDispatch;
     DriverObject->MajorFunction[IRP_MJ_FILE_SYSTEM_CONTROL] = UdfsDispatch;
     DriverObject->MajorFunction[IRP_MJ_CLEANUP] = UdfsDispatch;
+    
+    UDFS_DEBUG_INFO_ONCE("Dispatch table configured for all supported IRP major functions\n");
     
     /* Set unload routine */
     DriverObject->DriverUnload = UdfsUnload;
@@ -69,14 +79,18 @@ DriverEntry(
         );
         
     if (!NT_SUCCESS(Status)) {
+        UDFS_DEBUG_ERROR_ONCE("Failed to create file system device object, status=0x%08X\n", Status);
+        UdfsCleanupDebugSystem();
         ExDeleteResourceLite(&UdfsData.GlobalResource);
         return Status;
     }
     
     UdfsData.FileSystemDeviceObject = DeviceObject;
+    UDFS_DEBUG_INFO_ONCE("File system device object created successfully\n");
     
     /* Register the file system */
     IoRegisterFileSystem(DeviceObject);
+    UDFS_DEBUG_INFO_ONCE("UDF file system driver registered successfully\n");
     
     return STATUS_SUCCESS;
 }
@@ -92,10 +106,13 @@ UdfsUnload(
 {
     UNREFERENCED_PARAMETER(DriverObject);
     
+    UDFS_DEBUG_INFO_ONCE("Driver unloading\n");
+    
     /* Unregister the file system */
     if (UdfsData.FileSystemDeviceObject) {
         IoUnregisterFileSystem(UdfsData.FileSystemDeviceObject);
         IoDeleteDevice(UdfsData.FileSystemDeviceObject);
+        UDFS_DEBUG_INFO_ONCE("File system device object deleted\n");
     }
     
     /* Clean up UDFCT subsystem */
@@ -103,6 +120,9 @@ UdfsUnload(
     
     /* Clean up global resources */
     ExDeleteResourceLite(&UdfsData.GlobalResource);
+    
+    /* Clean up debug system last */
+    UdfsCleanupDebugSystem();
 }
 
 /*
@@ -120,12 +140,18 @@ UdfsDispatch(
     
     IrpSp = IoGetCurrentIrpStackLocation(Irp);
     
+    UDFS_DEBUG_INFO_ONCE("Main dispatch routine entered for IRP major function 0x%02X\n", 
+                         IrpSp->MajorFunction);
+    
     /* Check if this is the file system device object */
     if (DeviceObject == UdfsData.FileSystemDeviceObject) {
+        UDFS_DEBUG_FSCTRL_ONCE("Request directed to file system device object\n");
         /* Only file system control is allowed on the FS device */
         if (IrpSp->MajorFunction == IRP_MJ_FILE_SYSTEM_CONTROL) {
             Status = UdfsFileSystemControl(DeviceObject, Irp);
         } else {
+            UDFS_DEBUG_ERROR_ONCE("Invalid device request 0x%02X on FS device object\n", 
+                                  IrpSp->MajorFunction);
             Status = STATUS_INVALID_DEVICE_REQUEST;
             Irp->IoStatus.Status = Status;
             Irp->IoStatus.Information = 0;
