@@ -22,6 +22,14 @@
 #include "mytypes.h"
 
 #ifdef UDF_KERNEL_DRIVER
+/* Basic Windows kernel types needed for DbgPrint */
+#ifndef ULONG
+typedef unsigned long ULONG;
+#endif
+#ifndef PCSTR
+typedef const char* PCSTR;
+#endif
+
 /* Forward declare DbgPrint to avoid header conflicts */
 ULONG DbgPrint(PCSTR Format, ...);
 
