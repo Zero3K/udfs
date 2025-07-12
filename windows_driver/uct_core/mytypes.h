@@ -15,9 +15,22 @@
 #ifndef __UCT_MYTYPES_H__
 #define __UCT_MYTYPES_H__
 
+/* Windows kernel mode type definitions */
+#ifdef UDF_KERNEL_DRIVER
+/* For kernel mode, define size_t as the standard kernel type */
+#ifndef _BASETSD_H_
+typedef unsigned int SIZE_T;
+#endif
+#ifndef _SIZE_T_DEFINED
+#define _SIZE_T_DEFINED
+typedef SIZE_T size_t;
+#endif
+#endif
+
 #ifdef        __GNUC__
 #ifndef __int64
-#define __int64 long long int
+/* Use standard long long definition to avoid conflict with ReactOS SDK */
+#define __int64 long long
 #endif
 #endif
 

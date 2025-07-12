@@ -21,6 +21,86 @@
 
 #include "mytypes.h"
 
+#ifdef UDF_KERNEL_DRIVER
+
+/* Windows kernel mode - declare functions needed by UDFCT core files */
+/* These are needed because UDFCT core files don't include udfsprocs.h directly */
+#ifndef ULONG
+typedef unsigned long ULONG;
+#endif
+#ifndef PCSTR
+typedef const char* PCSTR;
+#endif
+#ifndef PVOID
+typedef void* PVOID;
+#endif
+#ifndef VOID
+typedef void VOID;
+#endif
+
+/* Pool types for memory allocation - kernel mode */
+#ifndef _POOL_TYPE
+typedef enum _POOL_TYPE {
+    PagedPool = 1
+} POOL_TYPE;
+#endif
+
+/* Forward declarations for Windows kernel functions used in macros */
+ULONG DbgPrint(PCSTR Format, ...);
+PVOID ExAllocatePoolWithTag(POOL_TYPE PoolType, size_t NumberOfBytes, ULONG Tag);
+VOID ExFreePoolWithTag(PVOID P, ULONG Tag);
+
+#else /* !UDF_KERNEL_DRIVER */
+
+/* For non-kernel mode compilation, provide basic type definitions */
+#ifndef ULONG
+typedef unsigned long ULONG;
+#endif
+#ifndef PCSTR
+typedef const char* PCSTR;
+#endif
+#ifndef PVOID
+typedef void* PVOID;
+#endif
+#ifndef VOID
+typedef void VOID;
+#endif
+
+/* Pool types for memory allocation - non-kernel mode */
+typedef enum _POOL_TYPE {
+    PagedPool = 1
+} POOL_TYPE;
+
+/* Stub declarations for non-kernel mode */
+ULONG DbgPrint(PCSTR Format, ...);
+PVOID ExAllocatePoolWithTag(POOL_TYPE PoolType, size_t NumberOfBytes, ULONG Tag);
+VOID ExFreePoolWithTag(PVOID P, ULONG Tag);
+
+#endif /* UDF_KERNEL_DRIVER */
+
+/* Kernel mode stubs for standard library functions that ReactOS doesn't provide */
+/* Note: fprintf, fflush need to be redefined as no-ops since uctout is NULL */
+
+/* Redefine fprintf and fflush as no-ops since uctout is NULL in kernel mode */
+#define fprintf(file, ...) ((void)0)
+#define fflush(file) ((void)0)
+
+/* Also redefine VERBOSE macros as no-ops for kernel mode */
+#define VERBOSE00(file, ...) ((void)0)
+
+/* Pool allocation constants */
+#define UDFS_POOL_TAG 0x53464455UL  /* 'UDFS' */
+
+/* Memory allocation macros for kernel mode */
+#define malloc(size) ExAllocatePoolWithTag(PagedPool, size, UDFS_POOL_TAG)
+#define free(ptr) ExFreePoolWithTag(ptr, UDFS_POOL_TAG)
+
+/* Forward declarations to avoid built-in conflicts */
+void* memcpy(void *dest, const void *src, size_t count);
+size_t strlen(const char *str);
+int sprintf(char *str, const char *format, ...);
+int memcmp(const void *ptr1, const void *ptr2, size_t count);
+
 
 #undef  DEBUG01     /* normally #undef */
 #undef  DEBUG02     /* normally #undef */
@@ -161,7 +241,11 @@ extern Int8 uctVerboseLevel;
  * All macros starting with "if" shall be explicitly
  * closed with ENDif.
  */
+#ifdef UDF_KERNEL_DRIVER
+/* VERBOSE00 already defined as no-op above for kernel mode */
+#else
 #define    VERBOSE00    fprintf         /* unconditional */
+#endif
 #define ifPRINTwarn01   ifVERBOSE(WARN01level) fprintf
 #define ifPRINTinfo01   ifVERBOSE(INFO01level) fprintf
 #define ifPRINTinfo02   ifVERBOSE(INFO02level) fprintf
