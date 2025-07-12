@@ -45,7 +45,6 @@ ULONG DbgPrint(PCSTR Format, ...);
 
 /* Forward declarations to avoid built-in conflicts */
 void* memcpy(void *dest, const void *src, size_t count);
-void free(void *ptr);
 size_t strlen(const char *str);
 int sprintf(char *str, const char *format, ...);
 int memcmp(const void *ptr1, const void *ptr2, size_t count);
