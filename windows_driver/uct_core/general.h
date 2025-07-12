@@ -23,11 +23,9 @@
 
 #ifdef UDF_KERNEL_DRIVER
 
-/* Only define Windows kernel types if not already defined by system headers */
-/* Check if we're in a context where kernel headers are not available */
-#if !defined(_WDM_H) && !defined(_NTDDK_H) && !defined(_NTIFS_H)
+#else /* !UDF_KERNEL_DRIVER */
 
-/* Basic Windows kernel types needed for DbgPrint */
+/* For non-kernel mode compilation, provide basic type definitions */
 #ifndef ULONG
 typedef unsigned long ULONG;
 #endif
@@ -41,19 +39,17 @@ typedef void* PVOID;
 typedef void VOID;
 #endif
 
-/* Pool types for memory allocation */
+/* Pool types for memory allocation - non-kernel mode */
 typedef enum _POOL_TYPE {
     PagedPool = 1
 } POOL_TYPE;
 
-/* Forward declare DbgPrint to avoid header conflicts */
+/* Stub declarations for non-kernel mode */
 ULONG DbgPrint(PCSTR Format, ...);
-
-/* Forward declarations for Windows kernel memory functions */
 PVOID ExAllocatePoolWithTag(POOL_TYPE PoolType, size_t NumberOfBytes, ULONG Tag);
 VOID ExFreePoolWithTag(PVOID P, ULONG Tag);
 
-#endif /* !_WDM_H && !_NTDDK_H && !_NTIFS_H */
+#endif /* UDF_KERNEL_DRIVER */
 
 /* Kernel mode stubs for standard library functions that ReactOS doesn't provide */
 /* Note: fprintf, fflush need to be redefined as no-ops since uctout is NULL */
