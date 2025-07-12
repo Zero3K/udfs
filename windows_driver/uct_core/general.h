@@ -29,9 +29,24 @@ typedef unsigned long ULONG;
 #ifndef PCSTR
 typedef const char* PCSTR;
 #endif
+#ifndef PVOID
+typedef void* PVOID;
+#endif
+#ifndef VOID
+typedef void VOID;
+#endif
+
+/* Pool types for memory allocation */
+typedef enum _POOL_TYPE {
+    PagedPool = 1
+} POOL_TYPE;
 
 /* Forward declare DbgPrint to avoid header conflicts */
 ULONG DbgPrint(PCSTR Format, ...);
+
+/* Forward declarations for Windows kernel memory functions */
+PVOID ExAllocatePoolWithTag(POOL_TYPE PoolType, size_t NumberOfBytes, ULONG Tag);
+VOID ExFreePoolWithTag(PVOID P, ULONG Tag);
 
 /* Kernel mode stubs for standard library functions that ReactOS doesn't provide */
 /* Note: fprintf, fflush need to be redefined as no-ops since uctout is NULL */
@@ -43,9 +58,12 @@ ULONG DbgPrint(PCSTR Format, ...);
 /* Also redefine VERBOSE macros as no-ops for kernel mode */
 #define VERBOSE00(file, ...) ((void)0)
 
+/* Pool allocation constants */
+#define UDFS_POOL_TAG 0x53464455UL  /* 'UDFS' */
+
 /* Memory allocation macros for kernel mode */
-#define malloc(size) ExAllocatePoolWithTag(PagedPool, size, 0x53464455) /* 'UDFS' */
-#define free(ptr) ExFreePoolWithTag(ptr, 0x53464455) /* 'UDFS' */
+#define malloc(size) ExAllocatePoolWithTag(PagedPool, size, UDFS_POOL_TAG)
+#define free(ptr) ExFreePoolWithTag(ptr, UDFS_POOL_TAG)
 
 /* Forward declarations to avoid built-in conflicts */
 void* memcpy(void *dest, const void *src, size_t count);

@@ -25,21 +25,6 @@
 #ifndef UNREFERENCED_PARAMETER
 #define UNREFERENCED_PARAMETER(P) ((void)(P))
 #endif
-
-/* Pool allocation constants */
-#define UDFS_POOL_TAG 0x73646655UL  /* 'Udfs' in proper byte order */
-
-/* Forward declarations for kernel functions */
-typedef enum _POOL_TYPE {
-    NonPagedPool = 0,
-    PagedPool = 1
-} POOL_TYPE;
-
-/* These will be linked from the actual kernel or our implementations */
-extern void* ExAllocatePoolWithTag(POOL_TYPE PoolType, size_t NumberOfBytes, unsigned long Tag);
-extern void ExFreePoolWithTag(void* P, unsigned long Tag);
-extern void* UdfsCalloc(size_t count, size_t size);
-extern void* UdfsRealloc(void* ptr, size_t size);
 #endif
 #include "general.h"
 #include "uctgeneral.h"     /* for uctout */
@@ -405,30 +390,6 @@ extern void *tst_realloc(void *mem, size_t size, char *file, int line)
     return UdfsRealloc(mem, size);
 #endif
 }   /* end tst_realloc() */
-
-#ifdef UDF_KERNEL_DRIVER
-/* Simple memcpy implementation for kernel mode */
-void* memcpy(void *dest, const void *src, size_t count)
-{
-    unsigned char *d = (unsigned char *)dest;
-    const unsigned char *s = (const unsigned char *)src;
-    
-    if (!dest || !src) return dest;
-    
-    while (count--) {
-        *d++ = *s++;
-    }
-    return dest;
-}
-
-/* Simple free implementation for kernel mode */
-void free(void *ptr)
-{
-    if (ptr) {
-        ExFreePoolWithTag(ptr, UDFS_POOL_TAG);
-    }
-}
-#endif
 
 
 /* qsort compare functions
