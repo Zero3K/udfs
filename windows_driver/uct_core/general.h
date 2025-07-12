@@ -23,8 +23,32 @@
 
 #ifdef UDF_KERNEL_DRIVER
 
-/* Windows kernel mode - Windows headers are included via udfsprocs.h */
-/* No need to declare kernel functions here as they're already available */
+/* Windows kernel mode - declare functions needed by UDFCT core files */
+/* These are needed because UDFCT core files don't include udfsprocs.h directly */
+#ifndef ULONG
+typedef unsigned long ULONG;
+#endif
+#ifndef PCSTR
+typedef const char* PCSTR;
+#endif
+#ifndef PVOID
+typedef void* PVOID;
+#endif
+#ifndef VOID
+typedef void VOID;
+#endif
+
+/* Pool types for memory allocation - kernel mode */
+#ifndef _POOL_TYPE
+typedef enum _POOL_TYPE {
+    PagedPool = 1
+} POOL_TYPE;
+#endif
+
+/* Forward declarations for Windows kernel functions used in macros */
+ULONG DbgPrint(PCSTR Format, ...);
+PVOID ExAllocatePoolWithTag(POOL_TYPE PoolType, size_t NumberOfBytes, ULONG Tag);
+VOID ExFreePoolWithTag(PVOID P, ULONG Tag);
 
 #else /* !UDF_KERNEL_DRIVER */
 
