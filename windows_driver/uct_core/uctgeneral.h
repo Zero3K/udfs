@@ -26,7 +26,12 @@
 #include "uctnodes.h"
 
 
+#ifdef UDF_KERNEL_DRIVER
+/* In kernel mode, disable output to avoid dependencies on stdio */
+#define uctout NULL         /* Disable output in kernel mode */
+#else
 #define uctout stdout       /* error/warning/info output */
+#endif
 
 /* warn for very big volumes/partitions.
  * do not create bitmaps or descriptors of more than 16 Mbyte

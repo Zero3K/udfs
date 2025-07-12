@@ -73,6 +73,7 @@
 
 /* Function prototypes for kernel mode string functions */
 PVOID UdfsCalloc(size_t count, size_t size);
+PVOID UdfsRealloc(PVOID ptr, size_t size);
 int UdfsSprintf(char *buffer, const char *format, ...);
 size_t UdfsStrlen(const char *str);
 int UdfsStrcmp(const char *str1, const char *str2);

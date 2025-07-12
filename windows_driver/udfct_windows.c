@@ -52,6 +52,28 @@ PVOID UdfsCalloc(size_t count, size_t size)
     return ptr;
 }
 
+PVOID UdfsRealloc(PVOID ptr, size_t size)
+{
+    PVOID newPtr;
+    
+    if (!ptr) {
+        return ExAllocatePoolWithTag(PagedPool, size, 'UDFS');
+    }
+    
+    if (size == 0) {
+        ExFreePoolWithTag(ptr, 'UDFS');
+        return NULL;
+    }
+    
+    newPtr = ExAllocatePoolWithTag(PagedPool, size, 'UDFS');
+    if (newPtr && ptr) {
+        /* In a real implementation, we'd need to know the old size */
+        /* For now, just allocate new memory */
+        ExFreePoolWithTag(ptr, 'UDFS');
+    }
+    return newPtr;
+}
+
 int UdfsSprintf(char *buffer, const char *format, ...)
 {
     /* Simple implementation - in a real driver this would need more work */

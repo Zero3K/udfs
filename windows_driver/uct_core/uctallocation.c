@@ -12,9 +12,11 @@
  * Author(s)   : Alexandre Sinitsyn, Gerrit Scholl.
  */
 
+#ifndef UDF_KERNEL_DRIVER
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#endif
 
 #include "mytypes.h"
 #include "general.h"

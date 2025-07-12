@@ -12,8 +12,10 @@
  * Author(s)   : Christ Vriens, Pieter-Bas IJdens, Gerrit Scholl
  */
 
+#ifndef UDF_KERNEL_DRIVER
 #include <stdio.h>
 #include <string.h>
+#endif
 
 #include "general.h"
 #include "uctgeneral.h"     /* for uctout */

@@ -12,11 +12,35 @@
  * Author(s)   : Gerrit Scholl
  */
 
+#ifndef UDF_KERNEL_DRIVER
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#endif
 
 #include "mytypes.h"
+
+#ifdef UDF_KERNEL_DRIVER
+/* Minimal kernel mode definitions for compilation */
+#ifndef UNREFERENCED_PARAMETER
+#define UNREFERENCED_PARAMETER(P) ((void)(P))
+#endif
+
+/* Pool allocation constants */
+#define UDFS_POOL_TAG 0x73646655UL  /* 'Udfs' in proper byte order */
+
+/* Forward declarations for kernel functions */
+typedef enum _POOL_TYPE {
+    NonPagedPool = 0,
+    PagedPool = 1
+} POOL_TYPE;
+
+/* These will be linked from the actual kernel or our implementations */
+extern void* ExAllocatePoolWithTag(POOL_TYPE PoolType, size_t NumberOfBytes, unsigned long Tag);
+extern void ExFreePoolWithTag(void* P, unsigned long Tag);
+extern void* UdfsCalloc(size_t count, size_t size);
+extern void* UdfsRealloc(void* ptr, size_t size);
+#endif
 #include "general.h"
 #include "uctgeneral.h"     /* for uctout */
 #include "ucterror.h"
@@ -189,6 +213,7 @@ extern bool MLIMITbeginFunction( MLIMITstruct *mls,
  */
 extern void MLIMITendFunction( MLIMITstruct *mls )
 {
+#ifndef UDF_KERNEL_DRIVER
     if( mls->endExecPrintmessage != 0 )
     { fprintf(uctout, "- ==>\tMessage printed ");
       if( mls->cnt == 1 )
@@ -197,6 +222,10 @@ extern void MLIMITendFunction( MLIMITstruct *mls )
 
       fprintf(uctout, ", ignored from now.\n");
     }
+#else
+    /* In kernel mode, do nothing */
+    UNREFERENCED_PARAMETER(mls);
+#endif
 }       /* end MLIMITendFunction() */
 
 /* return TRUE if value u is found in array,
@@ -219,10 +248,18 @@ extern bool inArrayUint32(Uint32 u, Uint32 *array, int len)
  */
 extern void checkFree( void **buff )
 {
+#ifndef UDF_KERNEL_DRIVER
     if( *buff != NULL ) {
         free(*buff);
         *buff = NULL;
     }
+#else
+    /* In kernel mode, use kernel pool functions */
+    if( *buff != NULL ) {
+        ExFreePoolWithTag(*buff, UDFS_POOL_TAG);
+        *buff = NULL;
+    }
+#endif
 }
 
 /* initForAlloc(): Initialize before use of tst_*alloc()
@@ -260,6 +297,7 @@ extern void initForAlloc()
 static void *tst_alloc( void *result, char *ident, char *file,
                         int line, size_t size )
 {
+#ifndef UDF_KERNEL_DRIVER
     if( result == NULL )    /* out of memory problem */
     { /* free spare memory in order to keep the
        * system running for error messages, etc.
@@ -284,6 +322,13 @@ static void *tst_alloc( void *result, char *ident, char *file,
       MLIMITend;
     }
     fflush(uctout);
+#else
+    /* In kernel mode, just ignore debug output */
+    UNREFERENCED_PARAMETER(ident);
+    UNREFERENCED_PARAMETER(file);
+    UNREFERENCED_PARAMETER(line);
+    UNREFERENCED_PARAMETER(size);
+#endif
     return result;
 }
 
@@ -292,9 +337,17 @@ static void *tst_alloc( void *result, char *ident, char *file,
  */
 extern void *tst_malloc(size_t size, char *file, int line)
 {
+#ifndef UDF_KERNEL_DRIVER
     fflush(uctout);
     if(size == 0) size = 1;     /* avoid zero bytes allocation */
     return tst_alloc(malloc(size), "tst_malloc", file, line, size);
+#else
+    /* In kernel mode, just allocate memory directly */
+    UNREFERENCED_PARAMETER(file);
+    UNREFERENCED_PARAMETER(line);
+    if(size == 0) size = 1;
+    return ExAllocatePoolWithTag(PagedPool, size, UDFS_POOL_TAG);
+#endif
 }
 
 /* tst_calloc():
@@ -302,9 +355,17 @@ extern void *tst_malloc(size_t size, char *file, int line)
  */
 extern void *tst_calloc(size_t num, size_t size, char *file, int line)
 {
+#ifndef UDF_KERNEL_DRIVER
     fflush(uctout);
     if((num*size) == 0) {num = 1; size = 1; } /* avoid zero bytes allocation */
     return tst_alloc(calloc(num,size), "tst_calloc", file, line, num * size);
+#else
+    /* In kernel mode, use our calloc implementation */
+    UNREFERENCED_PARAMETER(file);
+    UNREFERENCED_PARAMETER(line);
+    if((num*size) == 0) {num = 1; size = 1; }
+    return UdfsCalloc(num, size);
+#endif
 }
 
 /* tst_realloc():
@@ -313,6 +374,7 @@ extern void *tst_calloc(size_t num, size_t size, char *file, int line)
  */
 extern void *tst_realloc(void *mem, size_t size, char *file, int line)
 {
+#ifndef UDF_KERNEL_DRIVER
     fflush(uctout);
     if(size == 0) size = 1;     /* avoid zero bytes allocation */
 
@@ -335,7 +397,13 @@ extern void *tst_realloc(void *mem, size_t size, char *file, int line)
     return tst_alloc(newMem, "tst_realloc", file, line, size);
 }
 #endif  /* REALLOC_TESTING */
-
+#else
+    /* In kernel mode, use our realloc implementation */
+    UNREFERENCED_PARAMETER(file);
+    UNREFERENCED_PARAMETER(line);
+    if(size == 0) size = 1;
+    return UdfsRealloc(mem, size);
+#endif
 }   /* end tst_realloc() */
 
 
@@ -363,6 +431,7 @@ extern void printUint64(Uint8 vLevel, Uint64 u64,
                         bool  fixedHex16,
                         char *defaultFormat)
 {
+#ifndef UDF_KERNEL_DRIVER
     Uint32 low32, high32;
     ifVERBOSE(vLevel)
     {   low32  = (Uint32) (u64 & 0xFFFFFFFF);
@@ -376,6 +445,13 @@ extern void printUint64(Uint8 vLevel, Uint64 u64,
         else fprintf(uctout,         "%lu", low32);
     }
     ENDif;
+#else
+    /* In kernel mode, do nothing */
+    UNREFERENCED_PARAMETER(vLevel);
+    UNREFERENCED_PARAMETER(u64);
+    UNREFERENCED_PARAMETER(fixedHex16);
+    UNREFERENCED_PARAMETER(defaultFormat);
+#endif
 }
 
 /* Recursion control *************************
@@ -422,6 +498,7 @@ extern void printUint64(Uint8 vLevel, Uint64 u64,
  *  then FALSE
  *  else TRUE
  */
+#ifndef UDF_KERNEL_DRIVER
 extern bool checkRecursion(RecursionAdmin *recAdmin, Uint32 unique32,
                            Uint32 recursionCount, Uint32 recursionLimit,
                            char *functionName)
@@ -557,6 +634,25 @@ extern bool checkRecursion(RecursionAdmin *recAdmin, Uint32 unique32,
 
 }   /* end checkRecursion() */
 
+#else
+/* Kernel mode stub for checkRecursion */
+extern bool checkRecursion(RecursionAdmin *recAdmin, Uint32 unique32,
+                           Uint32 recursionCount, Uint32 recursionLimit,
+                           char *functionName)
+{
+    /* In kernel mode, just do basic recursion limit check */
+    UNREFERENCED_PARAMETER(recAdmin);
+    UNREFERENCED_PARAMETER(unique32);
+    UNREFERENCED_PARAMETER(functionName);
+    
+    if( recursionCount >= recursionLimit )
+    {
+        return FALSE;  /* Recursion limit exceeded */
+    }
+    return TRUE;
+}
+#endif
+
 /* nBytesChar():
  * Determine 'nmb of bytes' character.
  * To be used together with nBytesDouble(),
@@ -623,13 +719,18 @@ extern double nBytesDouble(Uint64 nmbBytes)
 extern void nBytesDoublePrint4f( Uint64 nmbBytes,
                                char *extraTxt )
 {
+#ifndef UDF_KERNEL_DRIVER
     double nbD = nBytesDouble(nmbBytes);
 
     fprintf( uctout, "%.4f %sbyte%s%s", nbD,
              nBytesChar(nmbBytes),
              PLURAL_S((int)nbD),
             (extraTxt != NULL) ? extraTxt : "" );
-
+#else
+    /* In kernel mode, do nothing */
+    UNREFERENCED_PARAMETER(nmbBytes);
+    UNREFERENCED_PARAMETER(extraTxt);
+#endif
 }   /* end nBytesDoublePrint4f() */
 
 /* absDiffUint32():
