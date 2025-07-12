@@ -101,9 +101,7 @@ struct tm {
 #define abort() /* abort not supported in kernel mode */
 
 /* Standard library types that may be needed */
-#ifndef size_t
-#define size_t SIZE_T
-#endif
+/* Use Windows kernel definition of size_t - do not redefine */
 
 /* Forward declare types before including UDFCT headers */
 typedef struct Device Device;
