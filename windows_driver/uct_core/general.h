@@ -22,22 +22,23 @@
 #include "mytypes.h"
 
 #ifdef UDF_KERNEL_DRIVER
+/* Forward declare DbgPrint to avoid header conflicts */
+ULONG DbgPrint(PCSTR Format, ...);
+
 /* Kernel mode stubs for standard library functions */
 
-/* Minimal FILE type definition for kernel mode */
-typedef void FILE;
-
-/* fprintf stub - do nothing in kernel mode */
-static inline int fprintf(FILE *stream, const char *format, ...) {
+/* fprintf stub - ignore file parameter and do nothing in kernel mode */
+static inline int fprintf(void *file_ignored, const char *fmt, ...) {
     /* Suppress unused parameter warnings */
-    (void)stream;
-    (void)format;
+    (void)file_ignored;
+    (void)fmt;
+    /* For kernel mode, just return success - actual logging done elsewhere */
     return 0;
 }
 
 /* fflush stub - do nothing in kernel mode */
-static inline int fflush(FILE *stream) {
-    (void)stream;
+static inline int fflush(void *file_ignored) {
+    (void)file_ignored;
     return 0;
 }
 

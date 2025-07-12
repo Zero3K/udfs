@@ -50,12 +50,10 @@
 
 /* Windows kernel mode UDFCT adaptation */
 #define printf DbgPrint
-#define fprintf(file, format, ...) DbgPrint(format, __VA_ARGS__)
 #define malloc(size) ExAllocatePoolWithTag(PagedPool, size, 'UDFS')
 #define free(ptr) ExFreePoolWithTag(ptr, 'UDFS')
 #define calloc(count, size) UdfsCalloc(count, size)
 #define realloc(ptr, size) UdfsReallocatePool(ptr, size)
-#define FILE void
 #define sprintf UdfsSprintf
 #define SEEK_SET 0
 #define SEEK_CUR 1
