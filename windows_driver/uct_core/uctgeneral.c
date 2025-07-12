@@ -73,7 +73,7 @@ extern bool readVolumeRecognitionSequence(Device *device,
 
     VERBOSE00(uctout, "\tRead Volume Recognition Sequence");
     if( verifySessionStart != 0 )
-    {      VERBOSE00(uctout, ", S = %lu\n", verifySessionStart); }
+    {      VERBOSE00(uctout, ", S = %u\n", verifySessionStart); }
     else { VERBOSE00(uctout, "\n"); }
 
     UCTASSERT( VRS_VSD_SIZE == sizeof(GenericVolumeStructureDescriptor));
@@ -335,7 +335,7 @@ extern bool translateVirtualAddress(PartitionMapInfo *virtualPmi,
     { if( !silent )
       { MLIMITbegin(ERROR00level,uctMessageLimit);
           fprintf(uctout, "\ttranslateVirtualAddress error: "
-                "Virtual address %lu beyond VAT table size (%lu)\n",
+                "Virtual address %u beyond VAT table size (%u)\n",
                     virtualAddress, v->numberOfEntries);
         MLIMITend;
       }
@@ -348,7 +348,7 @@ extern bool translateVirtualAddress(PartitionMapInfo *virtualPmi,
       if( !silent )
       { MLIMITbegin(ERROR00level,uctMessageLimit);
           fprintf(uctout, "\ttranslateVirtualAddress error:"
-            " Virtual address %lu translates to unused block\n", virtualAddress);
+            " Virtual address %u translates to unused block\n", virtualAddress);
         MLIMITend;
       }
       return FALSE;
@@ -956,7 +956,7 @@ static bool readDescriptor( UdfMountContext *mc,
         != 1 )
     {
         VERBOSE00(uctout, "-\treadDescriptor: "
-            "Error reading logical block %lu\n", blockNr);
+            "Error reading logical block %u\n", blockNr);
         free(readbuffer);
         return FALSE;
     }
@@ -1015,7 +1015,7 @@ static bool readDescriptor( UdfMountContext *mc,
             != (blocksToRead-1) )
         {
             VERBOSE00(uctout, "-\treadDescriptor: "
-                "Error reading logical block %lu ...\n", blockNr+1);
+                "Error reading logical block %u ...\n", blockNr+1);
             free(readbuffer);
             return FALSE;
         }
@@ -4524,12 +4524,12 @@ static bool readSparingTable(
                            PLURAL_S(sTail->numberOfSparingTables));
 
     for( n = 0; n < sTail->numberOfSparingTables; n++ )
-    {   VERBOSE00(uctout, " %lu", *(pSparingTableAddress+n));
+    {   VERBOSE00(uctout, " %u", *(pSparingTableAddress+n));
     }
     VERBOSE00(uctout, "\n");
     pSparingTableAddress += tableNumber;    /* the one to be read */
     VERBOSE00(uctout,
-        "\n\tReading Sparing Table %lu, block %lu, allocated bytes: %lu\n",
+        "\n\tReading Sparing Table %u, block %u, allocated bytes: %u\n",
                 tableNumber+1, (*pSparingTableAddress), stAllocBytes);
 
     if( !readDescriptor(mc, (*pSparingTableAddress), (Uint16) -1,
@@ -4538,7 +4538,7 @@ static bool readSparingTable(
     {   return FALSE;
     }
     VERBOSE00(uctout,
-        "\tBlocks read for Sparing Table: %lu, allocated: %lu\n\n",
+        "\tBlocks read for Sparing Table: %u, allocated: %u\n\n",
                 blocksRead, stAllocBlocks);
 
     /* Verify sizeOfEachSparingTable (== stAllocBytes)

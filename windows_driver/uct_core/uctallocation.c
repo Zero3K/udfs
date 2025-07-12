@@ -205,7 +205,7 @@ extern bool markUnallocatedPartitionSpace(UdfMountContext *mc,
        && blocksMarkedAlready != nrOfBlocks )
     {   ifPRINTdebug01(uctout,
           "markUnallocatedPartitionSpace error: Extent"
-          " is PARTLY unallocated already, %lu of %lu blocks\n",
+          " is PARTLY unallocated already, %u of %u blocks\n",
                 blocksMarkedAlready, nrOfBlocks);
         ENDif;
     }
@@ -372,7 +372,7 @@ extern bool verifyPartitionAllocation(UdfMountContext *mc)
         pmi->usedUnallocatedBlocks = pmi->unusedAllocatedBlocks = 0;
 
         VERBOSE00(uctout,
-          "\n ===>\t%8s Partition p%d:  size %lu blocks, %s\n",
+          "\n ===>\t%8s Partition p%d:  size %u blocks, %s\n",
                 PMAPTYPE_TEXT(pmi->pMapType), partRef,
                 actualPartitionLength,
                 PDAT_TEXT(pmi->pdPointer->accessType));
@@ -592,7 +592,7 @@ extern bool verifyPartitionAllocation(UdfMountContext *mc)
         else    /* used blocks marked as unallocated */
         {   MLIMITbegin(ERROR00level,uctMessageLimit);
               fprintf(uctout,
-                "\n\t  Error: %lu used block%s marked as"
+                "\n\t  Error: %u used block%s marked as"
                                     " unallocated or freed\n",
                              pmi->usedUnallocatedBlocks ,
                     PLURAL_S(pmi->usedUnallocatedBlocks));
@@ -608,7 +608,7 @@ extern bool verifyPartitionAllocation(UdfMountContext *mc)
         else
         { MLIMITbegin(WARN01level,uctMessageLimit);
             fprintf(uctout,
-               "\n\t  Warning: %lu unused block%s NOT marked %s.\n"
+               "\n\t  Warning: %u unused block%s NOT marked %s.\n"
                 "-\t\t   This may be due to previous errors,\n",
                              pmi->unusedAllocatedBlocks,
                     PLURAL_S(pmi->unusedAllocatedBlocks),

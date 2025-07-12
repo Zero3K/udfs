@@ -220,8 +220,8 @@ static Uint32 deviceReadCachePacket(Device *device,
             readCacheNmbOfActiveItems++; /* new item active */
 
 #ifdef  DEVICE_TESTING_READCACHE
-            fprintf(uctout, "READCACHE: %7lu: (%7lu, %3lu)"
-                                "\t-> NEW CACHE BUFFER (%lu)\n",
+            fprintf(uctout, "READCACHE: %7u: (%7u, %3u)"
+                                "\t-> NEW CACHE BUFFER (%u)\n",
                          firstOfCachePacket, firstBlock,
                          reqBlocks, readCacheNmbOfActiveItems);
             fflush(uctout);
@@ -241,8 +241,8 @@ static Uint32 deviceReadCachePacket(Device *device,
 #endif  /** DEVICE_READCACHE_SIMPLE **/
 
 #ifdef  DEVICE_TESTING_READCACHE
-          fprintf(uctout, "READCACHE: %7lu: (%7lu, %3lu)"
-                                "\t-> REPLACE CACHE BUFFER (%lu)\n",
+          fprintf(uctout, "READCACHE: %7u: (%7u, %3u)"
+                                "\t-> REPLACE CACHE BUFFER (%u)\n",
             replaceItem->firstBlockLsn, replaceItem->firstBlockLsn,
             replaceItem->nmbValidBlocks, replaceItem->accessCount);
           fflush(uctout);
@@ -504,7 +504,7 @@ extern Uint32 deviceReadBlock(Device *device,     Uint32 firstBlock,
        && (Uint64)firstBlock + nrOfBlocks - 1 > (Uint64)lastValidBlockNr )
     {   MLIMITbegin(ERROR00level, uctMessageLimit);
           fprintf(uctout,
-            "%s error: Beyond last valid block number %lu: %lu\n",
+            "%s error: Beyond last valid block number %u: %u\n",
             (buffer==NULL) ? "fake read" : "deviceReadBlock",
             lastValidBlockNr, firstBlock + nrOfBlocks - 1);
         MLIMITend;
@@ -530,16 +530,16 @@ extern Uint32 deviceReadBlock(Device *device,     Uint32 firstBlock,
     {   /* a read error is not a UDF compliance error,
          * so let's print a note here.
          */
-        VERBOSE00(uctout, "%7lu\tNote: READ ERROR",
+        VERBOSE00(uctout, "%7u\tNote: READ ERROR",
                             firstBlock + okBlocks);
         if( okBlocks != 0 )
         {   VERBOSE00(uctout,
-                ", only first %lu of %lu blocks read",
+                ", only first %u of %u blocks read",
                                 okBlocks, nrOfBlocks);
         }
         else if( nrOfBlocks != 1 )
         {   VERBOSE00(uctout,
-                ", first of %lu blocks could not be read",
+                ", first of %u blocks could not be read",
                                 nrOfBlocks);
         }
         VERBOSE00(uctout, "\n");
@@ -559,8 +559,8 @@ extern Uint32 deviceReadBlock(Device *device,     Uint32 firstBlock,
        && firstBlock + nrOfBlocks - 1 >= verifySessionStart )
     {   MLIMITbegin(ERROR00level, uctMessageLimit);
           fprintf(uctout,
-            "  ==>\t%s error: Reading in area from session start %lu\n"
-            "-\t\t\t%s till start of VRS %lu: %lu.\n",
+            "  ==>\t%s error: Reading in area from session start %u\n"
+            "-\t\t\t%s till start of VRS %u: %u.\n",
             (buffer==NULL) ? "fake read" : "deviceReadBlock",
              verifySessionStart,
             (buffer==NULL) ? "" : "      ",
