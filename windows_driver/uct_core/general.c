@@ -457,7 +457,7 @@ extern bool checkRecursion(RecursionAdmin *recAdmin, Uint32 unique32,
           fprintf(uctout,
              "\tError: Infinite recursion loop detected for %s().\n"
             "-\t       Unique recursion id encountered before in this recursion.\n"
-            "-\t       Recursion id, count and limit: %lu %lu %lu, loop length: %lu.\n"
+            "-\t       Recursion id, count and limit: %u %u %u, loop length: %u.\n"
             "-\t       In most cases the recursion id is an absolute block address.\n",
                 functionName, unique32, recursionCount, recursionLimit,
                 recursionCount - ((p32 == NULL) ? unique32 : n) );
@@ -490,7 +490,7 @@ extern bool checkRecursion(RecursionAdmin *recAdmin, Uint32 unique32,
     {
         MLIMITbegin(ERROR00level, uctMessageLimit);
           fprintf(uctout,
-             "\tError: Recursion limit %lu reached for %s().\n"
+             "\tError: Recursion limit %u reached for %s().\n"
             "-\t       Abort recursion, please report.\n",
                 recursionLimit, functionName);
         MLIMITend;

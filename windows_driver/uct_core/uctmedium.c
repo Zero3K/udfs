@@ -80,7 +80,7 @@ extern void printMediumInfo(const MediumInfo *mi)
      */
     if( mi->dummySessionTotalBlocks != 0 )
     { VERBOSE00(uctout,
-        "     dummy blocks\t: %lu\n",
+        "     dummy blocks\t: %u\n",
             mi->dummySessionTotalBlocks);
     }
 
@@ -88,7 +88,7 @@ extern void printMediumInfo(const MediumInfo *mi)
      * (only if unequal to lastValidBlockNr).
      */
     VERBOSE00(uctout,
-        "  last valid block\t: %lu   Volume Space: ",
+        "  last valid block\t: %u   Volume Space: ",
             mi->lastValidBlockNr);
     nBytesDoublePrint4f(
             ((Uint64)mi->lastValidBlockNr + 1) * mi->blockSize,
@@ -96,7 +96,7 @@ extern void printMediumInfo(const MediumInfo *mi)
 
     if( mi->lastRecordedBlockNr != mi->lastValidBlockNr)
     { VERBOSE00(uctout,
-        "  last recorded block\t: %lu\n",
+        "  last recorded block\t: %u\n",
             mi->lastRecordedBlockNr);
     }
 
@@ -104,17 +104,17 @@ extern void printMediumInfo(const MediumInfo *mi)
      */
     if( mi->L0capacity != 0 )       /* ML */
     { VERBOSE00(uctout,
-        "  L0 capacity ML %3s\t: %lu   sectors     : ",
+        "  L0 capacity ML %3s\t: %u   sectors     : ",
                 MI_OTP_TEXT(mi->isOTP), mi->L0capacity );
       nBytesDoublePrint4f(
           (Uint64) mi->L0capacity * mi->blockSize, "\n");
     }
 
     VERBOSE00(uctout,
-        "  block size\t\t: %lu\n"
-        "  (ECC) blocking factor : %lu\n"
-        "  nmb of sessions\t: %lu\n"
-        "  verify session\t: %lu\n",
+        "  block size\t\t: %u\n"
+        "  (ECC) blocking factor : %u\n"
+        "  nmb of sessions\t: %u\n"
+        "  verify session\t: %u\n",
             mi->blockSize,
             mi->eccLength,
             mi->numberOfSessions,
@@ -468,8 +468,8 @@ extern bool finishMediumInfo(MediumInfo *mi)
        && (mi->L0capacity % mi->eccLength) != 0 )
     { MLIMITbegin(ERROR00level,uctMessageLimit);
         fprintf(uctout,
-            "Error: L0 capacity: %lu,"
-                    " expected: multiple of %lu (ECC).\n",
+            "Error: L0 capacity: %u,"
+                    " expected: multiple of %u (ECC).\n",
             mi->L0capacity, mi->eccLength);
       MLIMITend;
       return FALSE;     /* error */
@@ -1495,7 +1495,7 @@ extern bool mlShowAndAssertLayers()
       else
       { VERBOSE00( uctout, " at least %lu layers,", 1+ln);
       }
-      VERBOSE00( uctout, " L0 capacity: %lu\n", mi->L0capacity );
+      VERBOSE00( uctout, " L0 capacity: %u\n", mi->L0capacity );
       UCTASSERT(   mi->isOTP    /* OTP */
                 || ln <= 1 );   /* PTP: mlGetLayerNumber() returns 0 or 1 */
     }
