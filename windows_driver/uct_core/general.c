@@ -406,6 +406,30 @@ extern void *tst_realloc(void *mem, size_t size, char *file, int line)
 #endif
 }   /* end tst_realloc() */
 
+#ifdef UDF_KERNEL_DRIVER
+/* Simple memcpy implementation for kernel mode */
+void* memcpy(void *dest, const void *src, size_t count)
+{
+    unsigned char *d = (unsigned char *)dest;
+    const unsigned char *s = (const unsigned char *)src;
+    
+    if (!dest || !src) return dest;
+    
+    while (count--) {
+        *d++ = *s++;
+    }
+    return dest;
+}
+
+/* Simple free implementation for kernel mode */
+void free(void *ptr)
+{
+    if (ptr) {
+        ExFreePoolWithTag(ptr, UDFS_POOL_TAG);
+    }
+}
+#endif
+
 
 /* qsort compare functions
  */

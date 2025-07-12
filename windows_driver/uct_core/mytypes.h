@@ -29,7 +29,8 @@ typedef SIZE_T size_t;
 
 #ifdef        __GNUC__
 #ifndef __int64
-#define __int64 long long int
+/* Use standard long long definition to avoid conflict with ReactOS SDK */
+#define __int64 long long
 #endif
 #endif
 

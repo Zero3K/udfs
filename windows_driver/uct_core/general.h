@@ -21,6 +21,32 @@
 
 #include "mytypes.h"
 
+#ifdef UDF_KERNEL_DRIVER
+/* Kernel mode stubs for standard library functions */
+
+/* Minimal FILE type definition for kernel mode */
+typedef void FILE;
+
+/* fprintf stub - do nothing in kernel mode */
+static inline int fprintf(FILE *stream, const char *format, ...) {
+    /* Suppress unused parameter warnings */
+    (void)stream;
+    (void)format;
+    return 0;
+}
+
+/* fflush stub - do nothing in kernel mode */
+static inline int fflush(FILE *stream) {
+    (void)stream;
+    return 0;
+}
+
+/* Forward declarations to avoid built-in conflicts */
+void* memcpy(void *dest, const void *src, size_t count);
+void free(void *ptr);
+
+#endif
+
 
 #undef  DEBUG01     /* normally #undef */
 #undef  DEBUG02     /* normally #undef */
