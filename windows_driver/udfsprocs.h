@@ -16,6 +16,7 @@
 #include <ntifs.h>
 #include <ntddk.h>
 #include <ntstrsafe.h>
+#include <ntdddisk.h>
 
 /* UDFCT core headers - adapted for kernel mode */
 #ifdef KERNEL_MODE
