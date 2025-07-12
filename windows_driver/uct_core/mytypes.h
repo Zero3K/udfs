@@ -17,11 +17,14 @@
 
 /* Windows kernel mode type definitions */
 #ifdef UDF_KERNEL_DRIVER
-/* For kernel mode, use Windows kernel types - do not redefine size_t */
+/* For kernel mode, define size_t as the standard kernel type */
 #ifndef _BASETSD_H_
 typedef unsigned int SIZE_T;
 #endif
-/* Do not redefine size_t - use Windows kernel definition */
+#ifndef _SIZE_T_DEFINED
+#define _SIZE_T_DEFINED
+typedef SIZE_T size_t;
+#endif
 #endif
 
 #ifdef        __GNUC__
