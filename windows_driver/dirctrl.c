@@ -18,13 +18,18 @@ UdfsDirectoryControl(
     
     IrpSp = IoGetCurrentIrpStackLocation(Irp);
     
+    UDFS_DEBUG_DIRCTRL_ONCE("Directory control request, minor function=0x%02X\n", 
+                           IrpSp->MinorFunction);
+    
     switch (IrpSp->MinorFunction) {
         case IRP_MN_QUERY_DIRECTORY:
+            UDFS_DEBUG_DIRCTRL_ONCE("Processing directory query request\n");
             Status = UdfsQueryDirectory(DeviceObject, Irp);
             break;
             
         case IRP_MN_NOTIFY_CHANGE_DIRECTORY:
             /* Read-only file system - no change notifications */
+            UDFS_DEBUG_DIRCTRL_ONCE("Change notification requested - not supported on read-only FS\n");
             Status = STATUS_INVALID_DEVICE_REQUEST;
             break;
             

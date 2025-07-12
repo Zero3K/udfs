@@ -25,7 +25,11 @@ UdfsQueryVolumeInformation(
     BufferLength = IrpSp->Parameters.QueryVolume.Length;
     Buffer = Irp->AssociatedIrp.SystemBuffer;
     
+    UDFS_DEBUG_INFO_ONCE("Volume information query, class=%d, buffer length=%lu\n", 
+                         FsInformationClass, BufferLength);
+    
     if (!Buffer) {
+        UDFS_DEBUG_ERROR_ONCE("Volume information query with null buffer\n");
         Status = STATUS_INVALID_PARAMETER;
         goto complete;
     }

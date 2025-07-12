@@ -103,6 +103,16 @@ ULONG UdfsHashString(PCSTR String);
 #define UDFS_DEBUG_ERROR_ONCE(Format, ...) \
     UDFS_DEBUG_PRINT_ONCE(UDFS_DEBUG_ERROR, "UDFS: [ERROR] " Format, ##__VA_ARGS__)
 
+/* Convenience macros for common debug scenarios */
+#define UDFS_DEBUG_ENTER_ONCE(FunctionName) \
+    UDFS_DEBUG_INFO_ONCE("Entering %s\n", FunctionName)
+
+#define UDFS_DEBUG_EXIT_ONCE(FunctionName, Status) \
+    UDFS_DEBUG_INFO_ONCE("Exiting %s with status=0x%08X\n", FunctionName, Status)
+
+#define UDFS_DEBUG_IRP_ONCE(MajorFunction, MinorFunction) \
+    UDFS_DEBUG_INFO_ONCE("Processing IRP: Major=0x%02X, Minor=0x%02X\n", MajorFunction, MinorFunction)
+
 #else /* !DEBUG */
 
 /* When DEBUG is not defined, all debug macros become no-ops */
@@ -121,6 +131,11 @@ ULONG UdfsHashString(PCSTR String);
 #define UDFS_DEBUG_DEVICE_ONCE(Format, ...) ((void)0)
 #define UDFS_DEBUG_INFO_ONCE(Format, ...) ((void)0)
 #define UDFS_DEBUG_ERROR_ONCE(Format, ...) ((void)0)
+
+/* When DEBUG is not defined, convenience macros also become no-ops */
+#define UDFS_DEBUG_ENTER_ONCE(FunctionName) ((void)0)
+#define UDFS_DEBUG_EXIT_ONCE(FunctionName, Status) ((void)0)
+#define UDFS_DEBUG_IRP_ONCE(MajorFunction, MinorFunction) ((void)0)
 
 #endif /* DEBUG */
 

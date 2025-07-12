@@ -24,6 +24,9 @@ UdfsClose(
     Fcb = (PUDFS_FCB)FileObject->FsContext;
     Ccb = (PUDFS_CCB)FileObject->FsContext2;
     
+    UDFS_DEBUG_CLOSE_ONCE("Close request for %s\n", 
+                          (Fcb && (Fcb->Flags & UDFS_FCB_DIRECTORY)) ? "directory" : "file");
+    
     /* Delete CCB if it exists */
     if (Ccb) {
         UdfsDeleteCcb(Ccb);

@@ -508,12 +508,19 @@ VOID UdfsCleanupUdfctMountContext(UdfMountContext *MountContext)
 
 int UdfsVsprintf(char *buffer, const char *format, va_list args)
 {
-    /* Simple implementation using RtlStringCchVPrintfA if available,
-     * otherwise fall back to basic vsprintf functionality */
+    /* Use Windows kernel mode string formatting */
     int result;
     
-    /* Try to use a simple string formatting approach */
-    result = _vsnprintf(buffer, 512, format, args);
+    /* Use _vsnprintf which is available in Windows kernel mode */
+    result = _vsnprintf(buffer, 511, format, args);
+    
+    /* Ensure null termination */
+    if (result >= 0 && result < 512) {
+        buffer[result] = '\0';
+    } else {
+        buffer[511] = '\0';
+        result = 511;
+    }
     
     return result;
 }

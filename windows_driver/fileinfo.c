@@ -26,6 +26,7 @@ UdfsQueryInformation(
     
     Fcb = (PUDFS_FCB)FileObject->FsContext;
     if (!Fcb) {
+        UDFS_DEBUG_ERROR_ONCE("File information query with null FCB\n");
         Status = STATUS_INVALID_PARAMETER;
         goto complete;
     }
@@ -34,7 +35,11 @@ UdfsQueryInformation(
     BufferLength = IrpSp->Parameters.QueryFile.Length;
     Buffer = Irp->AssociatedIrp.SystemBuffer;
     
+    UDFS_DEBUG_INFO_ONCE("File information query, class=%d, buffer length=%lu\n", 
+                         FileInformationClass, BufferLength);
+    
     if (!Buffer) {
+        UDFS_DEBUG_ERROR_ONCE("File information query with null buffer\n");
         Status = STATUS_INVALID_PARAMETER;
         goto complete;
     }

@@ -130,6 +130,57 @@ make
 3. **Performance**: Add caching and read-ahead
 4. **Testing**: Comprehensive testing with various UDF volumes
 
+## Debug Output
+
+The driver includes a comprehensive verbose debug output system that provides detailed information about driver operations when running under WinDbg or other debug environments.
+
+### Debug Features
+
+- **Conditional Compilation**: Debug output is only included when `DEBUG` is defined at compile time
+- **WinDbg Integration**: Uses `DbgPrint` which only appears in debug environments like WinDbg
+- **Once-Only Messages**: Each unique debug message prints only once to prevent log spam
+- **Categorized Output**: Debug messages are organized by category (MOUNT, CREATE, READ, WRITE, etc.)
+- **Thread-Safe**: Uses synchronization to ensure safe operation in multi-threaded environments
+
+### Debug Categories
+
+The debug system includes the following categories:
+
+- **MOUNT**: Volume mounting and recognition operations
+- **CREATE**: File and directory open/create operations  
+- **READ**: File read operations and data access
+- **WRITE**: File write operations and space allocation
+- **DIRCTRL**: Directory control and enumeration
+- **FSCTRL**: File system control operations
+- **CLEANUP/CLOSE**: File cleanup and close operations
+- **UDFCT**: UDFCT subsystem operations
+- **DEVICE**: Low-level device I/O operations
+- **INFO**: General informational messages
+- **ERROR**: Error conditions and failures
+
+### Enabling Debug Output
+
+Debug output is automatically enabled when:
+
+1. The driver is compiled with `DEBUG=1` (automatic in Debug builds)
+2. Running under WinDbg, KdPrint, or other Windows debug environments
+3. Debug output level is set to show kernel debug messages
+
+### Example Debug Output
+
+```
+UDFS: Debug system initialized - verbose output enabled
+UDFS: [INFO] Driver initializing, version compiled at Dec 12 2024 10:30:15
+UDFS: [UDFCT] UDFCT subsystem initialized (supporting UDF 1.02-2.60)
+UDFS: [MOUNT] Volume mount failed during UDFCT analysis, status=0xC000014C
+UDFS: [CREATE] Create/Open request for file: \MyFile.txt
+UDFS: [READ] Read request: offset=0, length=4096
+```
+
+### Hash-Based Deduplication
+
+The debug system uses a hash-based mechanism to ensure each unique message is printed only once during the driver's lifetime. This prevents repetitive debug output that could overwhelm debug logs while still providing comprehensive information about driver operations.
+
 ## UDFCT Adaptation Notes
 
 The UDFCT code required several adaptations for Windows kernel mode:

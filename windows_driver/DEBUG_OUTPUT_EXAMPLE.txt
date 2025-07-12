@@ -1,0 +1,74 @@
+/*
+ * UDFS Debug Output Example
+ * 
+ * This file demonstrates how the verbose debug output system works
+ * in the UDFS Windows driver when DEBUG is defined.
+ */
+
+// Example of debug output during driver initialization:
+/*
+UDFS: Debug system initialized - verbose output enabled
+UDFS: [INFO] Driver initializing, version compiled at Dec 12 2024 10:30:15
+UDFS: [INFO] Dispatch table configured for all supported IRP major functions
+UDFS: [UDFCT] UDFCT subsystem initialized (supporting UDF 1.02-2.60)
+UDFS: [INFO] File system device object created successfully
+UDFS: [INFO] UDF file system driver registered successfully
+*/
+
+// Example of debug output during volume mounting:
+/*
+UDFS: [INFO] Main dispatch routine entered for IRP major function 0x1B
+UDFS: [FSCTRL] Request directed to file system device object
+UDFS: [UDFCT] UDFCT successfully analyzed volume as UDF-compatible
+UDFS: [MOUNT] VCB created successfully for UDF volume
+UDFS: [MOUNT] UDF volume is write-protected, mounting as read-only
+UDFS: [MOUNT] Successfully mounted UDF volume (revision 2.60) with read-only support
+*/
+
+// Example of debug output during file operations:
+/*
+UDFS: [INFO] Main dispatch routine entered for IRP major function 0x00
+UDFS: [CREATE] Create/Open request for file: \Documents\readme.txt
+UDFS: [CREATE] Opening specific file or directory: \Documents\readme.txt
+UDFS: [CREATE] Successfully opened file: \Documents\readme.txt
+UDFS: [READ] Read request: offset=0, length=4096
+UDFS: [DEVICE] Successfully read 8 blocks starting at block 1024
+*/
+
+// Example of debug output during error conditions:
+/*
+UDFS: [MOUNT] Volume mount failed during UDFCT analysis, status=0xC000014C
+UDFS: [ERROR] Failed to create VCB for UDF volume, status=0xC000009A
+UDFS: [ERROR] Attempted to read from directory FCB
+UDFS: [ERROR] File information query with null buffer
+*/
+
+// Example of debug output during cleanup:
+/*
+UDFS: [CLEANUP] Cleanup request for file
+UDFS: [CLOSE] Close request for file
+UDFS: [INFO] File system device object deleted
+UDFS: [UDFCT] UDFCT subsystem cleaned up
+UDFS: [INFO] Driver unloading
+UDFS: Debug system cleaned up
+*/
+
+/*
+ * Key Features Demonstrated:
+ *
+ * 1. Conditional Output: All debug messages only appear when DEBUG is defined
+ * 2. Once-Only Printing: Each unique message appears only once (no spam)
+ * 3. Categorized Output: Messages are prefixed with category [MOUNT], [READ], etc.
+ * 4. WinDbg Integration: Uses DbgPrint which only shows in debug environments
+ * 5. Verbose Information: Detailed information about all driver operations
+ * 6. Error Tracking: Clear error messages with status codes
+ * 7. Thread Safety: Safe to use in multi-threaded kernel environment
+ *
+ * The debug system helps developers and testers understand:
+ * - Driver initialization and shutdown sequences
+ * - Volume mounting and recognition process
+ * - File and directory operations
+ * - I/O request processing
+ * - Error conditions and failure points
+ * - UDFCT subsystem interactions
+ */
