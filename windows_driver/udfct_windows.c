@@ -7,7 +7,6 @@
  */
 
 #include "udfsprocs.h"
-#include <stdarg.h>
 
 /* Global UDFCT state - we need minimal global state for kernel mode */
 static BOOLEAN UdfctInitialized = FALSE;
@@ -22,31 +21,43 @@ PVOID UdfsReallocatePool(PVOID OldBuffer, SIZE_T NewSize)
     SIZE_T OldSize;
     
     if (!OldBuffer) {
-        return ExAllocatePoolWithTag(PagedPool, NewSize, 'UDFS');
+        return ExAllocatePoolWithTag(PagedPool, NewSize, UDFS_TAG);
     }
     
     /* In a real implementation, we'd need to track allocation sizes */
     /* For now, we'll allocate new and copy - this is inefficient but functional */
-    NewBuffer = ExAllocatePoolWithTag(PagedPool, NewSize, 'UDFS');
+    NewBuffer = ExAllocatePoolWithTag(PagedPool, NewSize, UDFS_TAG);
     if (NewBuffer && OldBuffer) {
         /* We need to estimate the old size - in practice, we'd track this */
         OldSize = min(NewSize, 65536); /* Conservative estimate */
         memcpy(NewBuffer, OldBuffer, OldSize);
-        ExFreePoolWithTag(OldBuffer, 'UDFS');
+        ExFreePoolWithTag(OldBuffer, UDFS_TAG);
     }
     
     return NewBuffer;
 }
 
 /*
- * Kernel mode string function implementations
+ * Kernel mode memory and string function implementations
  */
+PVOID UdfsMalloc(size_t size)
+{
+    return ExAllocatePoolWithTag(PagedPool, size, UDFS_TAG);
+}
+
+VOID UdfsFree(PVOID ptr)
+{
+    if (ptr) {
+        ExFreePoolWithTag(ptr, UDFS_TAG);
+    }
+}
+
 PVOID UdfsCalloc(size_t count, size_t size)
 {
     PVOID ptr;
     size_t totalSize = count * size;
     
-    ptr = ExAllocatePoolWithTag(PagedPool, totalSize, 'UDFS');
+    ptr = ExAllocatePoolWithTag(PagedPool, totalSize, UDFS_TAG);
     if (ptr) {
         RtlZeroMemory(ptr, totalSize);
     }
@@ -58,21 +69,31 @@ PVOID UdfsRealloc(PVOID ptr, size_t size)
     PVOID newPtr;
     
     if (!ptr) {
-        return ExAllocatePoolWithTag(PagedPool, size, 'UDFS');
+        return ExAllocatePoolWithTag(PagedPool, size, UDFS_TAG);
     }
     
     if (size == 0) {
-        ExFreePoolWithTag(ptr, 'UDFS');
+        ExFreePoolWithTag(ptr, UDFS_TAG);
         return NULL;
     }
     
-    newPtr = ExAllocatePoolWithTag(PagedPool, size, 'UDFS');
+    newPtr = ExAllocatePoolWithTag(PagedPool, size, UDFS_TAG);
     if (newPtr && ptr) {
         /* In a real implementation, we'd need to know the old size */
         /* For now, just allocate new memory */
-        ExFreePoolWithTag(ptr, 'UDFS');
+        ExFreePoolWithTag(ptr, UDFS_TAG);
     }
     return newPtr;
+}
+
+int UdfsFprintf(void *stream, const char *format, ...)
+{
+    /* In kernel mode, we can't write to actual FILE streams */
+    /* This function is mainly used for debug output in UDFCT */
+    /* We'll just discard the output for kernel mode to avoid dependencies */
+    UNREFERENCED_PARAMETER(stream);
+    UNREFERENCED_PARAMETER(format);
+    return 0;
 }
 
 int UdfsSprintf(char *buffer, const char *format, ...)
@@ -294,7 +315,7 @@ void WindowsDeviceCloseAndFree(void *impUse)
         }
         
         /* Free the adapter structure */
-        ExFreePoolWithTag(adapter, 'UDFS');
+        ExFreePoolWithTag(adapter, UDFS_TAG);
     }
 }
 
@@ -314,7 +335,7 @@ NTSTATUS UdfsInitializeUdfctDevice(PDEVICE_OBJECT TargetDevice, Device **uctDevi
     *uctDevice = NULL;
     
     /* Allocate device adapter */
-    adapter = ExAllocatePoolWithTag(PagedPool, sizeof(WindowsDeviceAdapter), 'UDFS');
+    adapter = ExAllocatePoolWithTag(PagedPool, sizeof(WindowsDeviceAdapter), UDFS_TAG);
     if (!adapter) {
         return STATUS_INSUFFICIENT_RESOURCES;
     }
@@ -340,7 +361,7 @@ NTSTATUS UdfsInitializeUdfctDevice(PDEVICE_OBJECT TargetDevice, Device **uctDevi
     
     if (!irp) {
         ObDereferenceObject(TargetDevice);
-        ExFreePoolWithTag(adapter, 'UDFS');
+        ExFreePoolWithTag(adapter, UDFS_TAG);
         return STATUS_INSUFFICIENT_RESOURCES;
     }
     
@@ -365,10 +386,10 @@ NTSTATUS UdfsInitializeUdfctDevice(PDEVICE_OBJECT TargetDevice, Device **uctDevi
     }
     
     /* Allocate UDFCT device structure */
-    device = ExAllocatePoolWithTag(PagedPool, sizeof(Device), 'UDFS');
+    device = ExAllocatePoolWithTag(PagedPool, sizeof(Device), UDFS_TAG);
     if (!device) {
         ObDereferenceObject(TargetDevice);
-        ExFreePoolWithTag(adapter, 'UDFS');
+        ExFreePoolWithTag(adapter, UDFS_TAG);
         return STATUS_INSUFFICIENT_RESOURCES;
     }
     
@@ -454,7 +475,7 @@ NTSTATUS UdfsCreateUdfctMountContext(PDEVICE_OBJECT TargetDevice,
     }
     
     /* Allocate mount context */
-    mc = ExAllocatePoolWithTag(PagedPool, sizeof(UdfMountContext), 'UDFS');
+    mc = ExAllocatePoolWithTag(PagedPool, sizeof(UdfMountContext), UDFS_TAG);
     if (!mc) {
         deviceCloseAndFreeDevice(uctDevice);
         return STATUS_INSUFFICIENT_RESOURCES;
@@ -469,7 +490,7 @@ NTSTATUS UdfsCreateUdfctMountContext(PDEVICE_OBJECT TargetDevice,
     /* This will parse the UDF structures and determine the exact UDF revision */
     if (!udfMountLogicalVolume(mc, NULL)) {
         UDFS_DEBUG_ERROR_ONCE("Failed to mount UDF logical volume using UDFCT\n");
-        ExFreePoolWithTag(mc, 'UDFS');
+        ExFreePoolWithTag(mc, UDFS_TAG);
         deviceCloseAndFreeDevice(uctDevice);
         return STATUS_UNRECOGNIZED_VOLUME;
     }
@@ -499,7 +520,7 @@ VOID UdfsCleanupUdfctMountContext(UdfMountContext *MountContext)
     }
     
     /* Free mount context */
-    ExFreePoolWithTag(MountContext, 'UDFS');
+    ExFreePoolWithTag(MountContext, UDFS_TAG);
 }
 
 /*
@@ -585,7 +606,7 @@ char *UdfsStrcat(char *dest, const char *src)
 PVOID UdfsCalloc(size_t count, size_t size)
 {
     SIZE_T totalSize = count * size;
-    PVOID buffer = ExAllocatePoolWithTag(PagedPool, totalSize, 'UDFS');
+    PVOID buffer = ExAllocatePoolWithTag(PagedPool, totalSize, UDFS_TAG);
     if (buffer) {
         RtlZeroMemory(buffer, totalSize);
     }

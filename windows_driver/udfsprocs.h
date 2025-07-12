@@ -12,16 +12,25 @@
 #ifndef _UDFSPROCS_H_
 #define _UDFSPROCS_H_
 
-/* Windows kernel headers */
-#include <ntifs.h>
+/* Windows kernel headers - ReactOS compatible order */
 #include <ntddk.h>
+#include <ntifs.h>
 #include <ntstrsafe.h>
 #include <ntdddisk.h>
+#include <stdarg.h>
+
+/* ReactOS Build Environment compatibility */
+#include "reactos_compat.h"
 
 /* Debug infrastructure */
 #include "udfs_debug.h"
 
 /* UDFCT core headers - adapted for kernel mode */
+/* ReactOS Build Environment compatibility */
+#if defined(REACTOS) || defined(__REACTOS__)
+#define UDF_REACTOS_BUILD 1
+#endif
+
 #ifdef KERNEL_MODE
 
 /* Prevent standard library includes that are not available in kernel mode */
@@ -52,8 +61,14 @@
 #endif
 
 /* Windows kernel mode UDFCT adaptation */
+/* Mark that standard library macros are defined to prevent conflicts */
+#define UDF_STD_MACROS_DEFINED 1
+
 #define printf DbgPrint
+#define fprintf UdfsFprintf  
+#define malloc(size) UdfsMalloc(size)
 #define calloc(count, size) UdfsCalloc(count, size)
+#define free(ptr) UdfsFree(ptr)
 #define realloc(ptr, size) UdfsReallocatePool(ptr, size)
 #define sprintf UdfsSprintf
 #define SEEK_SET 0
@@ -72,8 +87,11 @@
 #define vsprintf UdfsVsprintf
 
 /* Function prototypes for kernel mode string functions */
+PVOID UdfsMalloc(size_t size);
 PVOID UdfsCalloc(size_t count, size_t size);
+VOID UdfsFree(PVOID ptr);
 PVOID UdfsRealloc(PVOID ptr, size_t size);
+int UdfsFprintf(void *stream, const char *format, ...);
 int UdfsSprintf(char *buffer, const char *format, ...);
 int UdfsVsprintf(char *buffer, const char *format, va_list args);
 size_t UdfsStrlen(const char *str);
@@ -156,8 +174,14 @@ NTSTATUS UdfsInitializeUdfctDevice(PDEVICE_OBJECT TargetDevice, Device **uctDevi
 #include "unicode.h"
 #endif
 
-/* Driver tag for memory allocations */
-#define UDFS_TAG 'SFDU'
+/* Driver tag for memory allocations - ReactOS compatible format */
+#if defined(UDF_REACTOS_BUILD)
+/* ReactOS prefers consistent tag formats */
+#define UDFS_TAG 'sfdU'
+#else
+/* Standard Windows format */
+#define UDFS_TAG ((ULONG)'sfdU')
+#endif
 
 /* File system name */
 #define UDFS_DEVICE_NAME L"\\Udfs"

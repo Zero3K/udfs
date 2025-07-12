@@ -178,7 +178,7 @@ UdfsReadFileData(
         blockOffset = currentOffset % blockSize;
         
         /* Allocate temporary buffer for block-aligned reads */
-        blockBuffer = ExAllocatePoolWithTag(PagedPool, blockSize, 'UDFS');
+        blockBuffer = ExAllocatePoolWithTag(PagedPool, blockSize, UDFS_TAG);
         if (!blockBuffer) {
             Status = STATUS_INSUFFICIENT_RESOURCES;
             break;
@@ -192,7 +192,7 @@ UdfsReadFileData(
             /* Read the block using UDFCT */
             if (readBlocksFromPartition(mc, blockBuffer, partRefNumber, 
                                        blockNumber, 1) != 1) {
-                ExFreePoolWithTag(blockBuffer, 'UDFS');
+                ExFreePoolWithTag(blockBuffer, UDFS_TAG);
                 return STATUS_DEVICE_DATA_ERROR;
             }
             
@@ -207,7 +207,7 @@ UdfsReadFileData(
             blockOffset = 0; /* Only first block may have offset */
         }
         
-        ExFreePoolWithTag(blockBuffer, 'UDFS');
+        ExFreePoolWithTag(blockBuffer, UDFS_TAG);
         currentOffset = 0; /* Reset for next extent */
         allocItem = allocItem->next;
     }

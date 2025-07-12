@@ -191,7 +191,7 @@ UdfsWriteFileData(
         blockOffset = currentOffset % blockSize;
         
         /* Allocate temporary buffer for block-aligned writes */
-        blockBuffer = ExAllocatePoolWithTag(PagedPool, blockSize, 'UDFS');
+        blockBuffer = ExAllocatePoolWithTag(PagedPool, blockSize, UDFS_TAG);
         if (!blockBuffer) {
             Status = STATUS_INSUFFICIENT_RESOURCES;
             break;
@@ -217,7 +217,7 @@ UdfsWriteFileData(
             /* Write the block using UDFCT device interface */
             if (!UdfsWriteBlockToPartition(mc, blockBuffer, partRefNumber, 
                                           blockNumber, 1, blockSize)) {
-                ExFreePoolWithTag(blockBuffer, 'UDFS');
+                ExFreePoolWithTag(blockBuffer, UDFS_TAG);
                 return STATUS_DEVICE_DATA_ERROR;
             }
             
@@ -229,7 +229,7 @@ UdfsWriteFileData(
             blockOffset = 0; /* Only first block may have offset */
         }
         
-        ExFreePoolWithTag(blockBuffer, 'UDFS');
+        ExFreePoolWithTag(blockBuffer, UDFS_TAG);
         currentOffset = 0; /* Reset for next extent */
         allocItem = allocItem->next;
     }
