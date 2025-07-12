@@ -30,7 +30,7 @@ PVOID UdfsReallocatePool(PVOID OldBuffer, SIZE_T NewSize)
     if (NewBuffer && OldBuffer) {
         /* We need to estimate the old size - in practice, we'd track this */
         OldSize = min(NewSize, 65536); /* Conservative estimate */
-        RtlCopyMemory(NewBuffer, OldBuffer, OldSize);
+        memcpy(NewBuffer, OldBuffer, OldSize);
         ExFreePoolWithTag(OldBuffer, 'UDFS');
     }
     

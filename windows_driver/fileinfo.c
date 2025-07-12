@@ -227,7 +227,7 @@ UdfsQueryNameInformation(
     NameInfo->FileNameLength = FileName.Length;
     
     if (FileName.Length > 0) {
-        RtlCopyMemory(NameInfo->FileName, FileName.Buffer, FileName.Length);
+        memcpy(NameInfo->FileName, FileName.Buffer, FileName.Length);
     }
     
     *Information = RequiredSize;

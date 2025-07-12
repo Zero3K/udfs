@@ -104,7 +104,7 @@ UdfsQueryFsVolumeInformation(
     VolumeInfo->SupportsObjects = FALSE;
     
     if (VolumeLabel.Length > 0) {
-        RtlCopyMemory(VolumeInfo->VolumeLabel, VolumeLabel.Buffer, VolumeLabel.Length);
+        memcpy(VolumeInfo->VolumeLabel, VolumeLabel.Buffer, VolumeLabel.Length);
     }
     
     *Information = RequiredSize;
@@ -139,7 +139,7 @@ UdfsQueryFsLabelInformation(
     LabelInfo->VolumeLabelLength = VolumeLabel.Length;
     
     if (VolumeLabel.Length > 0) {
-        RtlCopyMemory(LabelInfo->VolumeLabel, VolumeLabel.Buffer, VolumeLabel.Length);
+        memcpy(LabelInfo->VolumeLabel, VolumeLabel.Buffer, VolumeLabel.Length);
     }
     
     *Information = RequiredSize;
@@ -239,7 +239,7 @@ UdfsQueryFsAttributeInformation(
     AttributeInfo->MaximumComponentNameLength = 255;  /* UDF supports up to 255 character names */
     AttributeInfo->FileSystemNameLength = FileSystemName.Length;
     
-    RtlCopyMemory(AttributeInfo->FileSystemName, FileSystemName.Buffer, FileSystemName.Length);
+    memcpy(AttributeInfo->FileSystemName, FileSystemName.Buffer, FileSystemName.Length);
     
     *Information = RequiredSize;
     return STATUS_SUCCESS;
