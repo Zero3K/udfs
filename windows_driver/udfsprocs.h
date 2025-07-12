@@ -50,10 +50,6 @@
 
 /* Windows kernel mode UDFCT adaptation */
 #define printf DbgPrint
-#define fprintf(file, ...) ((void)0)  /* No-op in kernel mode since uctout is NULL */
-#define fflush(file) ((void)0)        /* No-op in kernel mode */
-#define malloc(size) ExAllocatePoolWithTag(PagedPool, size, 0x53464455) /* 'UDFS' */
-#define free(ptr) ExFreePoolWithTag(ptr, 0x53464455) /* 'UDFS' */
 #define calloc(count, size) UdfsCalloc(count, size)
 #define realloc(ptr, size) UdfsReallocatePool(ptr, size)
 #define sprintf UdfsSprintf

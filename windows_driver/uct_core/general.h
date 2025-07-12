@@ -43,6 +43,10 @@ ULONG DbgPrint(PCSTR Format, ...);
 /* Also redefine VERBOSE macros as no-ops for kernel mode */
 #define VERBOSE00(file, ...) ((void)0)
 
+/* Memory allocation macros for kernel mode */
+#define malloc(size) ExAllocatePoolWithTag(PagedPool, size, 0x53464455) /* 'UDFS' */
+#define free(ptr) ExFreePoolWithTag(ptr, 0x53464455) /* 'UDFS' */
+
 /* Forward declarations to avoid built-in conflicts */
 void* memcpy(void *dest, const void *src, size_t count);
 size_t strlen(const char *str);
