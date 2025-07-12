@@ -7,6 +7,7 @@
  */
 
 #include "udfsprocs.h"
+#include <stdarg.h>
 
 /* Global UDFCT state - we need minimal global state for kernel mode */
 static BOOLEAN UdfctInitialized = FALSE;
@@ -195,10 +196,13 @@ Uint32 WindowsDeviceReadBlock(void *impUse, Uint32 blockSize,
     }
     
     if (!NT_SUCCESS(status)) {
-        DbgPrint("UDFS: Device read failed at block %lu, status 0x%08X\n", 
+        UDFS_DEBUG_DEVICE_ONCE("Device read operation failed at block %lu, status=0x%08X\n", 
                  firstBlock, status);
         return 0;
     }
+    
+    UDFS_DEBUG_DEVICE_ONCE("Successfully read %lu blocks starting at block %lu\n",
+             nrOfBlocks, firstBlock);
     
     /* Return number of blocks successfully read */
     return (Uint32)(ioStatus.Information / blockSize);
@@ -251,10 +255,13 @@ Uint32 WindowsDeviceWriteBlock(void *impUse, Uint32 blockSize,
     }
     
     if (!NT_SUCCESS(status)) {
-        DbgPrint("UDFS: Device write failed at block %lu, status 0x%08X\n", 
+        UDFS_DEBUG_DEVICE_ONCE("Device write operation failed at block %lu, status=0x%08X\n", 
                  firstBlock, status);
         return 0;
     }
+    
+    UDFS_DEBUG_DEVICE_ONCE("Successfully wrote %lu blocks starting at block %lu\n",
+             nrOfBlocks, firstBlock);
     
     /* Return number of blocks successfully written */
     return (Uint32)(ioStatus.Information / blockSize);
@@ -406,7 +413,7 @@ NTSTATUS UdfsInitializeUdfctSubsystem(void)
     
     UdfctInitialized = TRUE;
     
-    DbgPrint("UDFS: UDFCT subsystem initialized (supporting UDF 1.02-2.60)\n");
+    UDFS_DEBUG_UDFCT_ONCE("UDFCT subsystem initialized (supporting UDF 1.02-2.60)\n");
     
     return STATUS_SUCCESS;
 }
@@ -425,7 +432,7 @@ VOID UdfsCleanupUdfctSubsystem(void)
     ExDeleteResourceLite(&UdfctGlobalResource);
     UdfctInitialized = FALSE;
     
-    DbgPrint("UDFS: UDFCT subsystem cleaned up\n");
+    UDFS_DEBUG_UDFCT_ONCE("UDFCT subsystem cleaned up\n");
 }
 
 /*
@@ -461,13 +468,13 @@ NTSTATUS UdfsCreateUdfctMountContext(PDEVICE_OBJECT TargetDevice,
     /* Use UDFCT to mount the logical volume */
     /* This will parse the UDF structures and determine the exact UDF revision */
     if (!udfMountLogicalVolume(mc, NULL)) {
-        DbgPrint("UDFS: Failed to mount UDF logical volume using UDFCT\n");
+        UDFS_DEBUG_ERROR_ONCE("Failed to mount UDF logical volume using UDFCT\n");
         ExFreePoolWithTag(mc, 'UDFS');
         deviceCloseAndFreeDevice(uctDevice);
         return STATUS_UNRECOGNIZED_VOLUME;
     }
     
-    DbgPrint("UDFS: Successfully mounted UDF volume, revision %u.%02u\n",
+    UDFS_DEBUG_UDFCT_ONCE("Successfully mounted UDF volume, revision %u.%02u\n",
              getUctUdfRevision() >> 8, getUctUdfRevision() & 0xFF);
     
     *MountContext = mc;
@@ -493,4 +500,106 @@ VOID UdfsCleanupUdfctMountContext(UdfMountContext *MountContext)
     
     /* Free mount context */
     ExFreePoolWithTag(MountContext, 'UDFS');
+}
+
+/*
+ * Kernel mode string functions - simple implementations for basic functionality
+ */
+
+int UdfsVsprintf(char *buffer, const char *format, va_list args)
+{
+    /* Simple implementation using RtlStringCchVPrintfA if available,
+     * otherwise fall back to basic vsprintf functionality */
+    int result;
+    
+    /* Try to use a simple string formatting approach */
+    result = _vsnprintf(buffer, 512, format, args);
+    
+    return result;
+}
+
+size_t UdfsStrlen(const char *str)
+{
+    size_t len = 0;
+    if (str) {
+        while (*str++) len++;
+    }
+    return len;
+}
+
+int UdfsStrcmp(const char *str1, const char *str2)
+{
+    if (!str1 || !str2) return (str1 == str2) ? 0 : (str1 ? 1 : -1);
+    
+    while (*str1 && (*str1 == *str2)) {
+        str1++;
+        str2++;
+    }
+    return *(unsigned char*)str1 - *(unsigned char*)str2;
+}
+
+int UdfsMemcmp(const void *ptr1, const void *ptr2, size_t count)
+{
+    const unsigned char *p1 = (const unsigned char*)ptr1;
+    const unsigned char *p2 = (const unsigned char*)ptr2;
+    
+    while (count-- > 0) {
+        if (*p1 != *p2) {
+            return *p1 - *p2;
+        }
+        p1++;
+        p2++;
+    }
+    return 0;
+}
+
+char *UdfsStrcpy(char *dest, const char *src)
+{
+    char *original_dest = dest;
+    if (dest && src) {
+        while ((*dest++ = *src++));
+    }
+    return original_dest;
+}
+
+char *UdfsStrncpy(char *dest, const char *src, size_t count)
+{
+    char *original_dest = dest;
+    if (dest && src) {
+        while (count-- > 0 && (*dest++ = *src++));
+        while (count-- > 0) *dest++ = '\0';
+    }
+    return original_dest;
+}
+
+char *UdfsStrcat(char *dest, const char *src)
+{
+    char *original_dest = dest;
+    if (dest && src) {
+        while (*dest) dest++;
+        while ((*dest++ = *src++));
+    }
+    return original_dest;
+}
+
+PVOID UdfsCalloc(size_t count, size_t size)
+{
+    SIZE_T totalSize = count * size;
+    PVOID buffer = ExAllocatePoolWithTag(PagedPool, totalSize, 'UDFS');
+    if (buffer) {
+        RtlZeroMemory(buffer, totalSize);
+    }
+    return buffer;
+}
+
+int UdfsSprintf(char *buffer, const char *format, ...)
+{
+    va_list args;
+    int result;
+    
+    va_start(args, format);
+    result = UdfsVsprintf(buffer, format, args);
+    va_end(args);
+    
+    return result;
 }

@@ -66,16 +66,21 @@ UdfsMountVolume(
     /* Check if this looks like a UDF volume using full UDFCT */
     Status = UdfsCreateUdfctMountContext(TargetDevice, &MountContext);
     if (!NT_SUCCESS(Status)) {
-        DbgPrint("UDFS: Not a UDF volume or UDFCT mount failed: 0x%08X\n", Status);
+        UDFS_DEBUG_MOUNT_ONCE("Volume mount failed during UDFCT analysis, status=0x%08X\n", Status);
         return Status;
     }
+    
+    UDFS_DEBUG_MOUNT_ONCE("UDFCT successfully analyzed volume as UDF-compatible\n");
     
     /* Create and initialize VCB */
     Status = UdfsCreateVcb(TargetDevice, Vpb, &Vcb);
     if (!NT_SUCCESS(Status)) {
+        UDFS_DEBUG_ERROR_ONCE("Failed to create VCB for UDF volume, status=0x%08X\n", Status);
         UdfsCleanupUdfctMountContext(MountContext);
         return Status;
     }
+    
+    UDFS_DEBUG_MOUNT_ONCE("VCB created successfully for UDF volume\n");
     
     /* Associate the UDFCT mount context with the VCB */
     Vcb->MountContext = MountContext;
@@ -86,7 +91,7 @@ UdfsMountVolume(
     /* Check medium writability */
     if (MountContext->device && MountContext->device->mediumInfo.writabilityType == MTYPE_WR_READONLY) {
         Vcb->IsReadOnly = TRUE;
-        DbgPrint("UDFS: Medium is read-only\n");
+        UDFS_DEBUG_MOUNT_ONCE("UDF volume is write-protected, mounting as read-only\n");
     }
     
     /* Add to global VCB list */
@@ -94,7 +99,7 @@ UdfsMountVolume(
     InsertTailList(&UdfsData.VcbList, &Vcb->VcbLinks);
     ExReleaseResourceLite(&UdfsData.GlobalResource);
     
-    DbgPrint("UDFS: Successfully mounted UDF volume (revision %u.%02u) with %s support\n",
+    UDFS_DEBUG_MOUNT_ONCE("Successfully mounted UDF volume (revision %u.%02u) with %s support\n",
              getUctUdfRevision() >> 8, getUctUdfRevision() & 0xFF,
              Vcb->IsReadOnly ? "read-only" : "read-write");
     

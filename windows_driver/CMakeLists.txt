@@ -14,7 +14,9 @@ list(APPEND SOURCE
     cleanup.c
     close.c
     udfct_windows.c
-    udfsprocs.h)
+    udfs_debug.c
+    udfsprocs.h
+    udfs_debug.h)
 
 # Include UDFCT core components needed for kernel mode
 list(APPEND UDFCT_SOURCE
@@ -51,7 +53,8 @@ target_compile_definitions(udfs PRIVATE
     -D_FILE_OFFSET_BITS=64
     -D_LARGEFILE_SOURCE
     -D__USE_LARGEFILE64
-    -DUDF_KERNEL_DRIVER=1)
+    -DUDF_KERNEL_DRIVER=1
+    $<$<CONFIG:Debug>:-DDEBUG=1>)
 
 # Link with required kernel libraries
 target_link_libraries(udfs ${PSEH_LIB})

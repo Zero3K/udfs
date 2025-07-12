@@ -26,13 +26,17 @@ UdfsCreate(
     /* Get file name to open */
     FileName = &FileObject->FileName;
     
+    UDFS_DEBUG_CREATE_ONCE("Create/Open request for file: %wZ\n", FileName);
+    
     /* Check for volume open */
     if (FileName->Length == 0 || 
         (FileName->Length == sizeof(WCHAR) && FileName->Buffer[0] == L'\\')) {
         /* Opening the volume/root directory */
+        UDFS_DEBUG_CREATE_ONCE("Opening root directory\n");
         Status = UdfsOpenRootDirectory(Vcb, FileObject, &Fcb, &Ccb);
     } else {
         /* Opening a specific file or directory */
+        UDFS_DEBUG_CREATE_ONCE("Opening specific file or directory: %wZ\n", FileName);
         Status = UdfsOpenFileByName(Vcb, FileName, FileObject, &Fcb, &Ccb);
     }
     
@@ -41,6 +45,10 @@ UdfsCreate(
         FileObject->FsContext = Fcb;
         FileObject->FsContext2 = Ccb;
         FileObject->SectionObjectPointer = &Fcb->SectionObjectPointers;
+        
+        UDFS_DEBUG_CREATE_ONCE("Successfully opened %s: %wZ\n",
+                               (Fcb->Flags & UDFS_FCB_DIRECTORY) ? "directory" : "file",
+                               FileName);
         
         /* Set success information */
         if (Fcb->Flags & UDFS_FCB_DIRECTORY) {

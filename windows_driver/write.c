@@ -279,7 +279,7 @@ UdfsAllocateFileSpace(
     /* For now, return success and let the higher level handle allocation */
     /* In a full implementation, this would use UDFCT's allocation management */
     
-    DbgPrint("UDFS: File space allocation needed: %lu additional blocks\n", 
+    UDFS_DEBUG_WRITE_ONCE("File space allocation needed: %lu additional blocks for file expansion\n", 
              blocksNeeded - currentBlocks);
     
     UNREFERENCED_PARAMETER(fileNode);

@@ -18,6 +18,9 @@
 #include <ntstrsafe.h>
 #include <ntdddisk.h>
 
+/* Debug infrastructure */
+#include "udfs_debug.h"
+
 /* UDFCT core headers - adapted for kernel mode */
 #ifdef KERNEL_MODE
 
@@ -66,11 +69,13 @@
 #define strcpy UdfsStrcpy
 #define strncpy UdfsStrncpy
 #define strcat UdfsStrcat
+#define vsprintf UdfsVsprintf
 
 /* Function prototypes for kernel mode string functions */
 PVOID UdfsCalloc(size_t count, size_t size);
 PVOID UdfsRealloc(PVOID ptr, size_t size);
 int UdfsSprintf(char *buffer, const char *format, ...);
+int UdfsVsprintf(char *buffer, const char *format, va_list args);
 size_t UdfsStrlen(const char *str);
 int UdfsStrcmp(const char *str1, const char *str2);
 int UdfsMemcmp(const void *ptr1, const void *ptr2, size_t count);
